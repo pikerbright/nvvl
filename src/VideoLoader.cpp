@@ -217,7 +217,7 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
         }
 
         if (file.fmt_ctx_->nb_streams > 1) {
-            log_.warn() << "There are " << file.fmt_ctx_->nb_streams << " streams in "
+            log_.info() << "There are " << file.fmt_ctx_->nb_streams << " streams in "
                         << filename << " which will degrade performance. "
                         << "Consider removing all but the main video stream."
                         << std::endl;
