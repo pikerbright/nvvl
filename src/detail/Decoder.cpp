@@ -69,6 +69,14 @@ void Decoder::push_req(FrameReq req) {
     throw std::runtime_error("Decoding audio/video data is not implemented for this decoder.");
 }
 
+void Decoder::set_time_base(AVRational time_base) {
+    throw std::runtime_error("Decoding audio/video data is not implemented for this decoder.");
+}
+
+void Decoder::set_frame_base(AVRational frame_base) {
+    throw std::runtime_error("Decoding audio/video data is not implemented for this decoder.");
+}
+
 void Decoder::receive_frames(PictureSequence& sequence) {
     throw std::runtime_error("Decoding audio/video data is not implemented for this decoder.");
 }

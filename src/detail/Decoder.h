@@ -26,6 +26,7 @@ struct FrameReq {
     std::string filename;
     int frame;
     int count;
+    bool stream;
 };
 
 class CUStream {
@@ -61,6 +62,10 @@ class Decoder {
     virtual void receive_frames(PictureSequence& sequence);
 
     virtual void finish();
+
+    virtual void set_time_base(AVRational time_base);
+
+    virtual void set_frame_base(AVRational frame_base);
 
   protected:
     virtual int decode_av_packet(AVPacket* pkt);

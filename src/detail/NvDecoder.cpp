@@ -9,6 +9,8 @@
 #include <cuda.h>
 #include <nvml.h>
 
+#include <math.h>
+
 extern "C" {
 #include <libavformat/avformat.h>
 }
@@ -180,8 +182,8 @@ int NvDecoder::handle_sequence_(CUVIDEOFORMAT* format) {
     // std::cout << "Frame base is " << format->frame_rate.denominator
     //           << " / " << format->frame_rate.numerator << std::endl;
     // std::cout << "handle_sequence" << std::endl;
-    frame_base_ = {static_cast<int>(format->frame_rate.denominator),
-                   static_cast<int>(format->frame_rate.numerator)};
+    //frame_base_ = {static_cast<int>(format->frame_rate.denominator),
+    //               static_cast<int>(format->frame_rate.numerator)};
     return decoder_.initialize(format);
 }
 
@@ -303,10 +305,31 @@ NvDecoder::TextureObject::operator cudaTextureObject_t() const {
     }
 }
 
+void NvDecoder::set_time_base(AVRational time_base)
+{
+    log_.debug() << "set_time_base " << time_base.num << " " << time_base.den << std::endl;
+    time_base_.num = time_base.num;
+    time_base_.den = time_base.den;
+    nv_time_base_.num = time_base.num;
+    nv_time_base_.den = time_base.den;
+}
+
+void NvDecoder::set_frame_base(AVRational frame_base)
+{
+    log_.debug() << "set_frame_base " << frame_base.num << " " << frame_base.den << std::endl;
+    frame_base_.num = frame_base.num;
+    frame_base_.den = frame_base.den;
+}
+
 int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
     auto frame = av_rescale_q(disp_info->timestamp,
                               nv_time_base_, frame_base_);
 
+    log_.debug() << "origin frame " << frame << std::endl;
+    log_.debug() << "start handle_display " << disp_info->timestamp
+                 << " " << nv_time_base_.num << " " << nv_time_base_.den
+                 << " " << frame_base_.num << " " << frame_base_.den
+                 << std::endl;
     if (current_recv_.count <= 0) {
         if (recv_queue_.empty()) {
             // we aren't expecting anything so just ditch this,
@@ -337,7 +360,7 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
         return 1;
     }
 
-    if (frame != current_recv_.frame) {
+    if (!current_recv_.stream && frame != current_recv_.frame) {
         // TODO This definitely needs better error handling... what if
         // we never get the frame we are waiting for?!
         log_.info() << "Ditching frame " << frame << " since we are waiting for "

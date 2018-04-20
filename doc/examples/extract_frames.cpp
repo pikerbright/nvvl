@@ -1,9 +1,11 @@
 #include <iostream>
-
+#define HAVE_OPENCV
 #ifdef HAVE_OPENCV
 # include <opencv2/imgcodecs.hpp>
 # include <opencv2/cudaimgproc.hpp>
 # include <opencv2/cudaarithm.hpp>
+#include "cv.h"
+#include "highgui.h"
 #endif
 
 #include <cuda.h>
@@ -11,8 +13,8 @@
 #include "VideoLoader.h"
 #include "cuda/utils.h"
 
-constexpr auto sequence_width = uint16_t{1280/2};
-constexpr auto sequence_height = uint16_t{720/2};
+constexpr auto sequence_width = uint16_t{1280};
+constexpr auto sequence_height = uint16_t{720};
 constexpr auto sequence_count = uint16_t{4};
 constexpr auto scale_width = int16_t{1280/2};
 constexpr auto scale_height = int16_t{720/2};
@@ -30,12 +32,13 @@ T* new_data(size_t* pitch, size_t width, size_t height) {
 
 // just use one buffer for each different type
 template<typename T>
-auto get_data(size_t* ret_pitch) {
+auto get_data(size_t* ret_pitch, size_t width, size_t height) {
     static size_t pitch;
     static auto data = std::unique_ptr<T, decltype(&cudaFree)>{
-        new_data<T>(&pitch, sequence_width, sequence_height * sequence_count * 3),
+        new_data<T>(&pitch, width, height * sequence_count * 3),
         cudaFree};
     *ret_pitch = pitch / sizeof(T);
+    //std::cout << "get data " << width << " " << height << " " << *ret_pitch << std::endl;
     return data.get();
 }
 
@@ -43,38 +46,38 @@ auto get_data(size_t* ret_pitch) {
 template<typename T>
 cv::cuda::GpuMat get_pixels(const PictureSequence& sequence, int index,
                             std::initializer_list<int> channel_order) {
-    auto pixels = sequence.get_layer<T>("pixels", index);
+    auto pixels = sequence.get_layer<T>("data", index);
     auto type = cv::DataType<T>::type;
     auto channels = std::vector<cv::cuda::GpuMat>();
     for (auto i : channel_order) {
-        channels.emplace_back(sequence.height, sequence.width, type,
-                              pixels.data + pixels.stride.c*i,
-                              pixels.stride.y * sizeof(T));
+        channels.emplace_back(pixels.desc.height, pixels.desc.width, type,
+                              pixels.data + pixels.desc.stride.c*i,
+                              pixels.desc.stride.y * sizeof(T));
     }
     auto tmp = cv::cuda::GpuMat();
     cv::cuda::merge(channels, tmp);
     auto out = cv::cuda::GpuMat();
-    tmp.convertTo(out, CV_8U, pixels.normalized ? 255.0 : 1.0);
+    tmp.convertTo(out, CV_8U, pixels.desc.normalized ? 255.0 : 1.0);
     return out;
 }
 
 template<>
 cv::cuda::GpuMat get_pixels<half>(const PictureSequence& sequence, int index,
                                   std::initializer_list<int> channel_order) {
-    auto pixels = sequence.get_layer<half>("pixels", index);
+    auto pixels = sequence.get_layer<half>("data", index);
     auto channels = std::vector<cv::cuda::GpuMat>();
     for (auto i : channel_order) {
-        auto channel = cv::cuda::GpuMat(sequence.height, sequence.width, CV_32FC1);
+        auto channel = cv::cuda::GpuMat((int)pixels.desc.height, (int)pixels.desc.width, CV_32FC1);
 
-        half2float(pixels.data + pixels.stride.c*i, pixels.stride.y,
-                   sequence.width, sequence.height,
+        half2float(pixels.data + pixels.desc.stride.c*i, pixels.desc.stride.y,
+                   pixels.desc.width, pixels.desc.height,
                    channel.ptr<float>(), channel.step1());
         channels.push_back(channel);
     }
     auto tmp = cv::cuda::GpuMat();
     cv::cuda::merge(channels, tmp);
     auto out = cv::cuda::GpuMat();
-    tmp.convertTo(out, CV_8U, pixels.normalized ? 255.0 : 1.0);
+    tmp.convertTo(out, CV_8U, pixels.desc.normalized ? 255.0 : 1.0);
     return out;
 }
 
@@ -82,10 +85,10 @@ template<typename T>
 void write_frame(const PictureSequence& sequence) {
     auto frame_nums = sequence.get_meta<int>("frame_num");
     for (int i = 0; i < sequence.count(); ++i) {
-        auto pixels = sequence.get_layer<T>("pixels", i);
+        auto pixels = sequence.get_layer<T>("data", i);
 
         auto gpu_bgr = cv::cuda::GpuMat();
-        if (pixels.color_space == ColorSpace_RGB) {
+        if (pixels.desc.color_space == ColorSpace_RGB) {
             gpu_bgr = get_pixels<T>(sequence, i, {2, 1, 0});
         } else {
             auto gpu_yuv = get_pixels<T>(sequence, i, {0, 2, 1});
@@ -97,9 +100,9 @@ void write_frame(const PictureSequence& sequence) {
 
         char output_file[256];
         auto frame_num = frame_nums[i];
-        sprintf(output_file,"./output/frames/%05d.png",frame_num);
+        sprintf(output_file,"./output/%05d.jpg",frame_num);
         cv::imwrite(output_file,host_bgr);
-        std::cout << "Wrote frame " << frame_num << std::endl;
+        std::cout << "Wrote frame " << frame_num << " " << output_file << std::endl;
     }
 }
 #else // no OpenCV
@@ -159,18 +162,18 @@ void write_frame(const PictureSequence& sequence) {
 NVVL::VideoLoader* loader;
 
 template<typename T>
-void process_frames(NVVL::VideoLoader& loader, NVVL::ColorSpace color_space,
+void process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL::ColorSpace color_space,
                     bool scale, bool normalized, bool flip,
                     NVVL::ScaleMethod scale_method = ScaleMethod_Linear)
 {
     auto s = PictureSequence{sequence_count};
 
     auto pixels = PictureSequence::Layer<T>{};
-    pixels.data = get_data<T>(&pixels.desc.stride.y);
+    pixels.data = get_data<T>(&pixels.desc.stride.y, width, height);
     pixels.desc.count = sequence_count;
     pixels.desc.channels = 3;
-    pixels.desc.width = sequence_width;
-    pixels.desc.height = sequence_height;
+    pixels.desc.width = width;
+    pixels.desc.height = height;
     if (scale) {
         pixels.desc.scale_width = scale_width;
         pixels.desc.scale_height = scale_height;
@@ -188,44 +191,62 @@ void process_frames(NVVL::VideoLoader& loader, NVVL::ColorSpace color_space,
     write_frame<T>(s);
 }
 
+void read_stream(char* filename, int batch_num)
+{
+    auto loader = NVVL::VideoLoader{0, LogLevel_Debug};
+
+    loader.read_stream(filename);
+
+    auto size = nvvl_video_size_from_file(filename);
+    std::cout << "stream resolution " << size.width << " " << size.height << std::endl;
+
+    for (int i = 0; i < batch_num; i++) {
+        //             type               color space     scale  norm   flip
+        process_frames<uint8_t>(loader, size.width, size.height, ColorSpace_RGB, false, false, false); // 0-3
+    }
+
+    loader.finish();
+    auto stats = loader.get_stats();
+    std::cout << "Total video packets read: " << stats.packets_read
+              << " (" << stats.bytes_read << " bytes)\n"
+              << "Total frames used: " << stats.frames_used
+              << std::endl;
+}
+
+void read_sequence(char* filename, int frame, int batch_num)
+{
+    auto loader = NVVL::VideoLoader{0, LogLevel_Debug};
+
+    auto frame_count = batch_num * sequence_count;
+
+    loader.read_sequence(filename, frame, frame_count);
+
+    auto size = nvvl_video_size_from_file(filename);
+    std::cout << "file resolution " << size.width << " " << size.height << std::endl;
+
+    for (int i = 0; i < batch_num; i++) {
+        //             type               color space     scale  norm   flip
+        process_frames<uint8_t>(loader, size.width, size.height, ColorSpace_RGB, false, false, false); // 0-3
+    }
+
+    loader.finish();
+    auto stats = loader.get_stats();
+    std::cout << "Total video packets read: " << stats.packets_read
+              << " (" << stats.bytes_read << " bytes)\n"
+              << "Total frames used: " << stats.frames_used
+              << std::endl;
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::cout << "usage: " << argv[0] << " <video file>\n";
         return -1;
     }
 
-    auto loader = NVVL::VideoLoader{0};
-
     auto filename = argv[1];
-    auto frame_count = loader.frame_count(filename);
-    std::cout << "Looks like there are " << frame_count << " frames" << std::endl;
+    auto batch_num = atoi(argv[2]);
 
-    // just enqueue all the frames, probably won't use them all
-    loader.read_sequence(filename, 0, frame_count);
-
-    //             type               color space     scale  norm   flip
-    process_frames<uint8_t>(loader, ColorSpace_RGB,   false, false, false); // 0-3
-    process_frames<uint8_t>(loader, ColorSpace_RGB,   false, false, true);  // 4-7
-    process_frames<uint8_t>(loader, ColorSpace_RGB,   true,  false, false); // 8-11
-    process_frames<uint8_t>(loader, ColorSpace_RGB,   true,  false, true);  // 12-15
-    process_frames<uint8_t>(loader, ColorSpace_YCbCr, false, false, false); // 16-19
-    process_frames<uint8_t>(loader, ColorSpace_YCbCr, true,  false, false); // 20-23
-    process_frames<float>  (loader, ColorSpace_RGB,   false, false, false); // 24-27
-    process_frames<float>  (loader, ColorSpace_RGB,   true,  false, false); // 28-31
-    process_frames<float>  (loader, ColorSpace_RGB,   true,  true,  false); // 32-35
-    process_frames<float>  (loader, ColorSpace_YCbCr, true,  false, false); // 36-39
-    process_frames<float>  (loader, ColorSpace_YCbCr, true,  true,  false); // 40-43
-    process_frames<half>   (loader, ColorSpace_RGB,   false, false, false); // 44-47
-    process_frames<half>   (loader, ColorSpace_RGB,   true,  false, false); // 48-51
-    process_frames<half>   (loader, ColorSpace_RGB,   true,  true,  false); // 52-55
-    process_frames<half>   (loader, ColorSpace_YCbCr, true,  false, false); // 56-59
-    process_frames<half>   (loader, ColorSpace_YCbCr, true,  true,  false); // 60-63
-
-    auto stats = loader.get_stats();
-    std::cout << "Total video packets read: " << stats.packets_read
-              << " (" << stats.bytes_read << " bytes)\n"
-              << "Total frames used: " << stats.frames_used
-              << std::endl;
+    read_sequence(filename, 0, batch_num);
 
     return 0;
 }

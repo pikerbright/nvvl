@@ -179,6 +179,12 @@ class VideoLoader {
     void read_sequence(std::string filename, int frame, int count=1);
 
     /**
+     * Enqueue the reading and decoding of video frames from a stream.
+     * \param filename path to the video stream
+     */
+    void read_stream(std::string filename);
+
+    /**
      * Enqueue transfer of the next set of frames into a
      * PictureSeqeunce.
      *
@@ -229,6 +235,8 @@ class VideoLoader {
      * \see LogLevel
      */
     void set_log_level(LogLevel level);
+
+    void finish();
 
     // need these for pImpl pointer to be happy
     ~VideoLoader();

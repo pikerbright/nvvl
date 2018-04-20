@@ -44,6 +44,10 @@ class NvDecoder : public Decoder
 
     void finish() final;
 
+    void set_time_base(AVRational time_base) final;
+
+    void set_frame_base(AVRational frame_base) final;
+
   protected:
     int decode_av_packet(AVPacket* pkt) final;
 

@@ -3,8 +3,17 @@ import torch
 from .dataset import ProcessDesc
 import collections
 import random
+import torch.multiprocessing
 
 from . import lib
+
+log_levels = {
+    "debug" : lib.LogLevel_Debug,
+    "info"  : lib.LogLevel_Info,
+    "warn"  : lib.LogLevel_Warn,
+    "error" : lib.LogLevel_Error,
+    "none"  : lib.LogLevel_None
+    }
 
 class VideoReader(object):
     """VideoReader, random read some frames from any position.
@@ -15,31 +24,38 @@ class VideoReader(object):
             video file name
 
     """
-    def __init__(self, filename):
+    def __init__(self, device_id=0, log_level="warn"):
         self.ffi = lib._ffi
-        self.filename = filename
-        self.image_shape = lib.nvvl_video_size_from_file(self.filename.encode('ascii'))
-        self.height = self.image_shape.height
-        self.width = self.image_shape.width
         self.tensor_queue = collections.deque()
         self.seq_queue = collections.deque()
-        self.processing = {"default": ProcessDesc(type='float',
-                                                 height=self.height,
-                                                 width=self.width,
-                                                 random_crop=False,
-                                                 random_flip=False,
-                                                 normalized=False,
-                                                 color_space="RGB",
-                                                 dimension_order="fhwc",
-                                                 index_map=None)}
-        self.loader = lib.nvvl_create_video_loader(0)
-        log.info("Success to init VideoReader for {} {}x{}".format(self.filename, self.width, self.height))
+        self.processing = None
+        self.device_id = device_id
+        try:
+            log_level = log_levels[log_level]
+        except KeyError:
+            log.info("Invalid log level", log_level, "using warn.")
+            log_level = lib.LogLevel_Warn
+
+        self.loader = lib.nvvl_create_video_loader_with_log(device_id, log_level)
+        log.info("Success to init VideoReader device_id {}".format(self.device_id))
 
     def _create_tensor_map(self, batch_size=1):
         tensor_map = {}
-        for name, desc in self.processing.items():
-            tensor_map[name] = desc.tensor_type(batch_size, *desc.get_dims())
+        with torch.cuda.device(self.device_id):
+            for name, desc in self.processing.items():
+                tensor_map[name] = desc.tensor_type(batch_size, *desc.get_dims())
         return tensor_map
+
+    def _set_process_desc(self, width, height, index_map=None):
+        self.processing = {"default": ProcessDesc(type='float',
+                                                  height=height,
+                                                  width=width,
+                                                  random_crop=False,
+                                                  random_flip=False,
+                                                  normalized=False,
+                                                  color_space="RGB",
+                                                  dimension_order="fhwc",
+                                                  index_map=index_map)}
 
     def _get_layer_desc(self, desc):
         d = desc.desc()
@@ -61,16 +77,16 @@ class VideoReader(object):
 
         return d
 
-    def _start_receive(self, index, length):
+    def _start_receive(self, filename, index, length):
 
         lib.nvvl_read_sequence(self.loader,
-                               str.encode(self.filename),
+                               str.encode(filename),
                                index, length)
 
         seq = lib.nvvl_create_sequence(length)
 
-        for name, desc in self.processing.items():
-            desc.count = length
+        # for name, desc in self.processing.items():
+        #     desc.count = length
 
         tensor_map = self._create_tensor_map()
 
@@ -119,13 +135,46 @@ class VideoReader(object):
             lib.nvvl_sequence_stream_wait_th(seq)
         lib.nvvl_free_sequence(seq)
 
-    def get_samples(self, indexs, length):
+    def get_samples(self, filename, indexs):
+        max_index = max(indexs)
+        min_index = min(indexs)
+
+        length = max_index - min_index + 1
+        image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
+        height = image_shape.height
+        width = image_shape.width
+        index_map = [-1] * length
+
+        for i, index in enumerate(indexs):
+            index_map[index - min_index] = i
+
+        self._set_process_desc(width, height, index_map=index_map)
+
+        # if isinstance(indexs, int):
+        #     indexs = [indexs]
+
+        self._start_receive(filename, min_index, length)
+
+        self._finish_reveive()
+        t = self.tensor_queue.popleft()
+        tensors = t["default"][0].cpu()
+        log.info("tensor shape {}".format(t["default"][0].shape))
+
+        return tensors
+
+    def get_samples_old(self, filename, indexs):
+
+        image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
+        height = image_shape.height
+        width = image_shape.width
+
+        self._set_process_desc(width, height, index_map=[0])
 
         if isinstance(indexs, int):
             indexs = [indexs]
 
         for index in indexs:
-            self._start_receive(index, length)
+            self._start_receive(filename, index, 1)
 
         tensors = []
         for index in indexs:
@@ -135,7 +184,28 @@ class VideoReader(object):
 
         return tensors
 
-    def get_frames(self, index, length):
+    def get_samples_old_sync(self, filename, indexs):
+
+        image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
+        height = image_shape.height
+        width = image_shape.width
+
+        self._set_process_desc(width, height, index_map=[0])
+
+        if isinstance(indexs, int):
+            indexs = [indexs]
+
+        tensors = []
+        for index in indexs:
+            self._start_receive(filename, index, 1)
+
+            self._finish_reveive(synchronous=True)
+            t = self.tensor_queue.popleft()
+            tensors.append(t["default"][0].cpu())
+
+        return tensors
+
+    def get_frames(self, filename, index, length):
         """get n {length} frams from position {index} in video
 
         Parameters
@@ -147,12 +217,18 @@ class VideoReader(object):
         """
 
         lib.nvvl_read_sequence(self.loader,
-                               str.encode(self.filename),
+                               str.encode(filename),
                                index, length)
 
         log.info("Start to read sequence from index {}, length {}".format(index, length))
 
         seq = lib.nvvl_create_sequence(length)
+
+        image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
+        height = image_shape.height
+        width = image_shape.width
+
+        self._set_process_desc(width, height)
 
         for name, desc in self.processing.items():
             desc.count = length

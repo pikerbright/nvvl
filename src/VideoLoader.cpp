@@ -5,6 +5,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <climits>
 #include <memory>
 #include <random>
 #include <sstream>
@@ -83,6 +84,7 @@ class VideoLoader::impl {
     int frame_count(std::string filename);
     Size size() const;
     void read_sequence(std::string filename, int frame, int count=1);
+    void read_stream(std::string filename);
     void receive_frames(PictureSequence& sequence);
     VideoLoaderStats get_stats() const;
     void reset_stats();
@@ -127,6 +129,7 @@ class VideoLoader::impl {
     // this needs to be last so that it is destroyed first so that the
     // above remain valid until the file_reader_ thread is done
     detail::JoiningThread file_reader_;
+    detail::JoiningThread stream_reader_;
 
     // Are these good numbers? Allow them to be set?
     static constexpr auto frames_used_warning_ratio = 3.0f;
@@ -150,12 +153,17 @@ VideoLoader::impl::impl(int device_id, LogLevel log_level)
       width_{0}, height_{0}, codec_id_{0},
       done_{false}, log_{log_level} {
     av_register_all();
+    avformat_network_init();
 
     file_reader_ = std::thread{&VideoLoader::impl::read_file, this};
 }
 
 // Willing to break rule of zero here to clean up threads
 VideoLoader::~VideoLoader() {
+    pImpl->finish();
+}
+
+void  VideoLoader::finish() {
     pImpl->finish();
 }
 
@@ -184,8 +192,20 @@ void VideoLoader::read_sequence(std::string filename, int frame, int count) {
     pImpl->read_sequence(filename, frame, count);
 }
 
+void VideoLoader::read_stream(std::string filename) {
+    pImpl->read_stream(filename);
+}
+
 void VideoLoader::impl::read_sequence(std::string filename, int frame, int count) {
-    auto req = detail::FrameReq{filename, frame, count};
+    auto req = detail::FrameReq{filename, frame, count, false};
+    // give both reader thread and decoder a copy of what is coming
+    send_queue_.push(req);
+}
+
+void VideoLoader::impl::read_stream(std::string filename) {
+    int frame = 0;
+    int count = INT_MAX;
+    auto req = detail::FrameReq{filename, frame, count, true};
     // give both reader thread and decoder a copy of what is coming
     send_queue_.push(req);
 }
@@ -205,9 +225,17 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
         log_.debug() << "Opening file " << filename << std::endl;
 
         AVFormatContext* raw_fmt_ctx = nullptr;
-        if (avformat_open_input(&raw_fmt_ctx, filename.c_str(), NULL, NULL) < 0) {
+
+        AVDictionary* options = NULL;
+        av_dict_set(&options, "rtsp_transport", "tcp", 0);
+        av_dict_set(&options, "max_delay", "500000", 0);
+
+        if (avformat_open_input(&raw_fmt_ctx, filename.c_str(), NULL, &options) < 0) {
             throw std::runtime_error(std::string("Could not open file ") + filename);
         }
+
+        av_dump_format(raw_fmt_ctx, 0, filename.c_str(), 0);
+
         file.fmt_ctx_ = make_unique_av<AVFormatContext>(raw_fmt_ctx, avformat_close_input);
 
         // is this needed?
@@ -232,6 +260,15 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
 
         auto stream = file.fmt_ctx_->streams[file.vid_stream_idx_];
         auto codec_id = codecpar(stream)->codec_id;
+
+        // 1/frame_rate is duration of each frame (or time base of frame_num)
+        file.frame_base_ = AVRational{stream->avg_frame_rate.den,
+                                      stream->avg_frame_rate.num};
+
+
+        log_.debug() << "avg_frame_rate " << stream->avg_frame_rate.den << " " << stream->avg_frame_rate.num << std::endl;
+        log_.debug() << "width " << codecpar(stream)->width << " height " << codecpar(stream)->height << std::endl;
+
         if (width_ == 0) { // first file to open
             width_ = codecpar(stream)->width;
             height_ = codecpar(stream)->height;
@@ -246,6 +283,9 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
                 new detail::NvDecoder(device_id_, log_,
                                       codecpar(stream),
                                       stream->time_base)};
+//            AVRational tmp_base{stream->avg_frame_rate.den, stream->avg_frame_rate.num};
+            vid_decoder_->set_time_base(stream->time_base);
+            vid_decoder_->set_frame_base(file.frame_base_);
         } else { // already opened a file
             if (!vid_decoder_) {
                 throw std::logic_error("width is already set but we don't have a vid_decoder_");
@@ -264,10 +304,11 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
                 throw std::runtime_error(err.str());
             }
         }
+        vid_decoder_->set_time_base(stream->time_base);
+        vid_decoder_->set_frame_base(file.frame_base_);
+
         file.stream_base_ = stream->time_base;
-        // 1/frame_rate is duration of each frame (or time base of frame_num)
-        file.frame_base_ = AVRational{stream->avg_frame_rate.den,
-                                      stream->avg_frame_rate.num};
+
         file.frame_count_ = av_rescale_q(stream->duration,
                                          stream->time_base,
                                          file.frame_base_);
@@ -378,10 +419,11 @@ void VideoLoader::impl::read_file() {
         // we want to seek each time because even if we ended on the
         // correct key frame, we've flushed the decoder, so it needs
         // another key frame to start decoding again
-        seek(file, req.frame);
+        if (!req.stream)
+            seek(file, req.frame);
 
         auto nonkey_frame_count = 0;
-        while (req.count > 0 && av_read_frame(file.fmt_ctx_.get(), &raw_pkt) >= 0) {
+        while (!done_ && req.count > 0 && av_read_frame(file.fmt_ctx_.get(), &raw_pkt) >= 0) {
             auto pkt = pkt_ptr(&raw_pkt, av_packet_unref);
 
             stats_.bytes_read += pkt->size;
@@ -400,7 +442,7 @@ void VideoLoader::impl::read_file() {
 
             // The following assumes that all frames between key frames
             // have pts between the key frames.  Is that true?
-            if (frame >= req.frame) {
+            if (!req.stream && frame >= req.frame) {
                 if (key) {
                     static auto final_try = false;
                     if (frame > req.frame + nonkey_frame_count) {
@@ -512,7 +554,8 @@ void VideoLoader::impl::read_file() {
         vid_decoder_->decode_packet(nullptr);
     }
 
-    vid_decoder_->decode_packet(nullptr); // stop decoding
+    if (vid_decoder_)
+        vid_decoder_->decode_packet(nullptr); // stop decoding
     log_.info() << "Leaving read_file" << std::endl;
 }
 
@@ -521,7 +564,7 @@ void VideoLoader::receive_frames(PictureSequence& sequence) {
 }
 
 void VideoLoader::impl::receive_frames(PictureSequence& sequence) {
-    auto startup_timeout = 1000;
+    auto startup_timeout = 10000;
     while (!vid_decoder_) {
         usleep(500);
         if (startup_timeout-- == 0) {
@@ -598,7 +641,11 @@ struct Size nvvl_video_size_from_file(const char* filename) {
     av_register_all();
 
     AVFormatContext* raw_fmt_ctx = nullptr;
-    auto ret = avformat_open_input(&raw_fmt_ctx, filename, NULL, NULL);
+
+    AVDictionary* options = NULL;
+    av_dict_set(&options, "rtsp_transport", "tcp", 0);
+
+    auto ret = avformat_open_input(&raw_fmt_ctx, filename, NULL, &options);
     if (ret < 0) {
         std::stringstream err;
         err << "Could not open file " << filename
@@ -639,6 +686,11 @@ void nvvl_read_sequence(VideoLoaderHandle loader, const char* filename,
                    int frame, int count) {
     auto vl = reinterpret_cast<NVVL::VideoLoader*>(loader);
     vl->read_sequence(filename, frame, count);
+}
+
+void nvvl_read_stream(VideoLoaderHandle loader, const char* filename) {
+    auto vl = reinterpret_cast<NVVL::VideoLoader*>(loader);
+    vl->read_stream(filename);
 }
 
 PictureSequenceHandle nvvl_receive_frames(VideoLoaderHandle loader, PictureSequenceHandle sequence) {
