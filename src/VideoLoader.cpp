@@ -236,7 +236,7 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
             throw std::runtime_error(std::string("Could not open file ") + filename);
         }
 
-        av_dump_format(raw_fmt_ctx, 0, filename.c_str(), 0);
+        //av_dump_format(raw_fmt_ctx, 0, filename.c_str(), 0);
 
         file.fmt_ctx_ = make_unique_av<AVFormatContext>(raw_fmt_ctx, avformat_close_input);
 
