@@ -184,6 +184,8 @@ int NvDecoder::handle_sequence_(CUVIDEOFORMAT* format) {
     // std::cout << "handle_sequence" << std::endl;
     //frame_base_ = {static_cast<int>(format->frame_rate.denominator),
     //               static_cast<int>(format->frame_rate.numerator)};
+    log_.debug() << "handle_sequence_" << std::endl;
+
     return decoder_.initialize(format);
 }
 

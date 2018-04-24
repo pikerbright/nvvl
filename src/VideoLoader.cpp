@@ -99,6 +99,7 @@ class VideoLoader::impl {
 
         int vid_stream_idx_;
         int last_frame_;
+        bool sps_init;
 
 #ifdef HAVE_AVBSFCONTEXT
         av_unique_ptr<AVBSFContext> bsf_ctx_;
@@ -154,6 +155,7 @@ VideoLoader::impl::impl(int device_id, LogLevel log_level)
       done_{false}, log_{log_level} {
     av_register_all();
     avformat_network_init();
+    //av_log_set_level(AV_LOG_DEBUG);
 
     file_reader_ = std::thread{&VideoLoader::impl::read_file, this};
 }
@@ -338,6 +340,8 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
                 throw std::runtime_error("Error setting BSF parameters.");
             }
 
+            //file.bsf_ctx_->time_base_in = stream->time_base;
+
             if (av_bsf_init(file.bsf_ctx_.get()) < 0) {
                 throw std::runtime_error("Error initializing BSF.");
             }
@@ -358,6 +362,7 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
             throw std::runtime_error(err.str());
         }
         file.open = true;
+        file.sps_init = true;
     }
     return file;
 }
@@ -486,6 +491,7 @@ void VideoLoader::impl::read_file() {
             log_.info() << device_id_ << ": Sending " << (key ? "  key " : "nonkey")
                         << " frame " << frame << " to the decoder."
                         << " size = " << pkt->size
+                        << " pts " << pkt->pts
                         << " req.frame = " << req.frame
                         << " req.count = " << req.count
                         << " nonkey_frame_count = " << nonkey_frame_count
@@ -493,6 +499,17 @@ void VideoLoader::impl::read_file() {
 
             stats_.bytes_decoded += pkt->size;
             stats_.packets_decoded++;
+
+            auto raw_sps_pkg = AVPacket{};
+
+            if (file.sps_init) {
+                auto stream = file.fmt_ctx_->streams[file.vid_stream_idx_];
+                av_new_packet(&raw_sps_pkg, codecpar(stream)->extradata_size);
+                auto sps_pkg = pkt_ptr(&raw_sps_pkg, av_packet_unref);
+                memcpy((char *) sps_pkg->data, (char *) codecpar(stream)->extradata, codecpar(stream)->extradata_size);
+                vid_decoder_->decode_packet(sps_pkg.get());
+                file.sps_init = false;
+            }
 
             if (file.bsf_ctx_ && pkt->size > 0) {
                 int ret;

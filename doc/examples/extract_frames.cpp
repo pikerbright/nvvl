@@ -246,7 +246,11 @@ int main(int argc, char** argv) {
     auto filename = argv[1];
     auto batch_num = atoi(argv[2]);
 
-    read_sequence(filename, 0, batch_num);
-
+    auto is_stream = atoi(argv[3]);
+    if (is_stream)
+        read_stream(filename, batch_num);
+    else
+        read_sequence(filename, 0, batch_num);
+    
     return 0;
 }
