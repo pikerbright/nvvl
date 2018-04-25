@@ -81,7 +81,7 @@ class VideoReader(object):
 
         lib.nvvl_read_sequence(self.loader,
                                str.encode(filename),
-                               index, length)
+                               int(index), length)
 
         seq = lib.nvvl_create_sequence(length)
 
