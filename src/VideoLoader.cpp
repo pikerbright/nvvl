@@ -372,7 +372,7 @@ void VideoLoader::impl::seek(OpenFile& file, int frame) {
     auto seek_time = av_rescale_q(frame,
                                   file.frame_base_,
                                   file.stream_base_);
-    // std::cout << "Seeking to frame " << frame << " timestamp " << seek_time << std::endl;
+    log_.debug() << "Seeking to frame " << frame << " timestamp " << seek_time << std::endl;
     // auto ret = avformat_seek_file(file.fmt_ctx_.get(), file.vid_stream_idx_,
     //                               INT64_MIN, seek_time, seek_time, 0);
 
@@ -424,8 +424,10 @@ void VideoLoader::impl::read_file() {
         // we want to seek each time because even if we ended on the
         // correct key frame, we've flushed the decoder, so it needs
         // another key frame to start decoding again
+        int seek_frame = 0;
         if (!req.stream)
-            seek(file, req.frame);
+            seek_frame = req.frame<3?-2:req.frame;
+            seek(file, seek_frame);
 
         auto nonkey_frame_count = 0;
         while (!done_ && req.count > 0 && av_read_frame(file.fmt_ctx_.get(), &raw_pkt) >= 0) {
@@ -454,7 +456,8 @@ void VideoLoader::impl::read_file() {
                         log_.debug() << device_id_ << ": We got ahead of ourselves! "
                                      << frame << " > " << req.frame << " + "
                                      << nonkey_frame_count
-                                     << " seek_hack = " << seek_hack << std::endl;
+                                     << " seek_hack = " << seek_hack
+                                     << " pts " << pkt->pts << std::endl;
                         seek_hack *= 2;
                         if (final_try) {
                             std::stringstream ss;
@@ -687,6 +690,47 @@ struct Size nvvl_video_size_from_file(const char* filename) {
     auto stream = fmt_ctx->streams[vid_stream_idx_];
     return Size{static_cast<uint16_t>(codecpar(stream)->width),
                 static_cast<uint16_t>(codecpar(stream)->height)};
+}
+
+int nvvl_video_frame_count_from_file(const char* filename) {
+    av_register_all();
+
+    AVFormatContext* raw_fmt_ctx = nullptr;
+
+    AVDictionary* options = NULL;
+    av_dict_set(&options, "rtsp_transport", "tcp", 0);
+
+    auto ret = avformat_open_input(&raw_fmt_ctx, filename, NULL, &options);
+    if (ret < 0) {
+        std::stringstream err;
+        err << "Could not open file " << filename
+            << ": " << av_err2str(ret);
+        throw std::runtime_error(err.str());
+    }
+
+    auto fmt_ctx = make_unique_av<AVFormatContext>(raw_fmt_ctx, avformat_close_input);
+
+    // is this needed?
+    if (avformat_find_stream_info(fmt_ctx.get(), nullptr) < 0) {
+        throw std::runtime_error(std::string("Could not find stream information in ")
+                                 + filename);
+    }
+
+    auto vid_stream_idx_ = av_find_best_stream(fmt_ctx.get(), AVMEDIA_TYPE_VIDEO,
+                                               -1, -1, nullptr, 0);
+    if (vid_stream_idx_ < 0) {
+        throw std::runtime_error(std::string("Could not find video stream in ") + filename);
+    }
+
+    auto stream = fmt_ctx->streams[vid_stream_idx_];
+    AVRational frame_base = {stream->avg_frame_rate.den,
+                             stream->avg_frame_rate.num};
+
+    int frame_count = av_rescale_q(stream->duration,
+                                stream->time_base,
+                                frame_base);
+
+    return frame_count;
 }
 
 struct Size nvvl_video_size(VideoLoaderHandle loader) {
