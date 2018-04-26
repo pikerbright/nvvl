@@ -220,7 +220,12 @@ Size VideoLoader::impl::size() const {
     return Size{width_, height_};
 }
 
+#define MAX_OPEN_FILE 1000
 VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string filename) {
+    if (open_files_.size() > MAX_OPEN_FILE) {
+        open_files_.clear();
+    }
+
     auto& file = open_files_[filename];
 
     if (!file.open) {
@@ -280,6 +285,9 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
                 throw std::logic_error("width and height not set, but we have a decoder?");
             }
             log_.info() << "Opened the first file, creating a video decoder" << std::endl;
+
+            if (codecpar(stream)->codec_type != AVMEDIA_TYPE_VIDEO)
+                log_.error() << "codec_type error " << codecpar(stream)->codec_type << std::endl;
 
             vid_decoder_ = std::unique_ptr<detail::Decoder>{
                 new detail::NvDecoder(device_id_, log_,

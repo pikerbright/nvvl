@@ -42,25 +42,26 @@ CUStream::operator cudaStream_t() {
     return stream_;
 }
 
-Decoder::Decoder() : device_id_{0}, stream_{true}, codecpar_{}, log_{default_log}
+Decoder::Decoder() : device_id_{0}, stream_{true}, codecpar_{}, codec_type_{}, log_{default_log}
 {
 }
 
 Decoder::Decoder(int device_id, Logger& logger,
                  const CodecParameters* codecpar)
-    : device_id_{device_id}, stream_{false}, codecpar_{codecpar}, log_{logger}
+    : device_id_{device_id}, stream_{false}, codecpar_{codecpar}, codec_type_{codecpar->codec_type}, log_{logger}
 {
 }
 
 int Decoder::decode_packet(AVPacket* pkt) {
-    switch(codecpar_->codec_type) {
+    switch(codec_type_) {
         case AVMEDIA_TYPE_AUDIO:
         case AVMEDIA_TYPE_VIDEO:
             return decode_av_packet(pkt);
 
         default:
-            throw std::runtime_error("Got to decode_packet in a decoder that is not "
-                                     "for an audio, video, or subtitle stream.");
+            log_.error() << "decode_packet error codec_type" << codec_type_ << std::endl;
+            //throw std::runtime_error("Got to decode_packet in a decoder that is not "
+            //                         "for an audio, video, or subtitle stream.");
     }
     return -1;
 }

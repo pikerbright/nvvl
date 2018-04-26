@@ -83,6 +83,7 @@ class Decoder {
     const int device_id_;
     CUStream stream_;
     const CodecParameters* codecpar_;
+    AVMediaType codec_type_;
 
     detail::Logger& log_;
 };
