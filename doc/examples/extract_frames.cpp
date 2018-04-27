@@ -238,8 +238,8 @@ void read_sequence(char* filename, int frame, int batch_num)
 }
 
 int main(int argc, char** argv) {
-    if (argc < 2) {
-        std::cout << "usage: " << argv[0] << " <video file>\n";
+    if (argc < 4) {
+        std::cout << "usage: " << argv[0] << " <video file> " << " <frame num> " << " <is_stream(0 or 1)>\n";
         return -1;
     }
 
