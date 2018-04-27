@@ -1,5 +1,5 @@
 #include <iostream>
-#define HAVE_OPENCV
+//#define HAVE_OPENCV
 #ifdef HAVE_OPENCV
 # include <opencv2/imgcodecs.hpp>
 # include <opencv2/cudaimgproc.hpp>
@@ -120,7 +120,7 @@ typename host_type<T>::type* dev_data(const PictureSequence::Layer<T>& layer, si
 
 template<>
 host_type<half>::type* dev_data<half>(const PictureSequence::Layer<half>& layer, size_t* pitch) {
-    auto dev_floats = get_data<float>(pitch);
+    auto dev_floats = get_data<float>(pitch, layer.desc.width, layer.desc.height);
 
     half2float(layer.data, layer.desc.stride.y,
                layer.desc.width, layer.desc.height,

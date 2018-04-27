@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.9)
 
 project(extract_frames)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-list(APPEND CUDA_NVCC_FLAGS "-std=c++14")
+list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
 
 if(NOT CMAKE_CUDA_FLAGS)
     set(CMAKE_CUDA_FLAGS "-cudart shared")
@@ -27,7 +26,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 #    CUDA_SEPARABLE_COMPILATION ON
 #    )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC nvvl cuda nvcuvid nvidia-ml)
+target_link_libraries(${PROJECT_NAME} PUBLIC nvvl cuda)
 
 set(WITH_OPENCV 1)
 
