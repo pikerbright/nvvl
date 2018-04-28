@@ -130,7 +130,6 @@ class VideoLoader::impl {
     // this needs to be last so that it is destroyed first so that the
     // above remain valid until the file_reader_ thread is done
     detail::JoiningThread file_reader_;
-    detail::JoiningThread stream_reader_;
 
     // Are these good numbers? Allow them to be set?
     static constexpr auto frames_used_warning_ratio = 3.0f;
