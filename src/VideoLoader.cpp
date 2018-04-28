@@ -372,7 +372,7 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
         file.sps_init = true;
     }
 
-    vid_decoder_->set_time_base(file.time_base);
+    vid_decoder_->set_time_base(file.stream_base_);
     vid_decoder_->set_frame_base(file.frame_base_);
 
     return file;
