@@ -615,7 +615,7 @@ void VideoLoader::impl::receive_frames(PictureSequence& sequence) {
                              frames_used_warning_minimum)) {
         frames_since_warn = 0;
         frames_used_warned = true;
-        log_.warn() << "\e[1mThe video loader is performing suboptimally due to reading "
+        log_.info() << "\e[1mThe video loader is performing suboptimally due to reading "
                     << std::setprecision(2) << ratio_used << "x as many packets as "
                     << "frames being used.\e[0m  Consider reencoding the video with a "
                     << "smaller key frame interval (GOP length).";
