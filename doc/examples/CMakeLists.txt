@@ -12,7 +12,7 @@ find_package(CUDA REQUIRED)
 
 set(CUDA_LIBRARIES PUBLIC ${CUDA_LIBRARIES})
 
-#include_directories(/usr/local/cuda/include)
+include_directories(../../include)
 
 cuda_add_executable(${PROJECT_NAME}
     extract_frames.cpp
@@ -26,7 +26,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 #    CUDA_SEPARABLE_COMPILATION ON
 #    )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC nvvl cuda)
+target_link_libraries(${PROJECT_NAME} PUBLIC nvvl nvcuvid cuda)
 
 set(WITH_OPENCV 1)
 
