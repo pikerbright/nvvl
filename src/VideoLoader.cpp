@@ -618,7 +618,7 @@ void VideoLoader::impl::receive_frames(PictureSequence& sequence) {
         log_.info() << "\e[1mThe video loader is performing suboptimally due to reading "
                     << std::setprecision(2) << ratio_used << "x as many packets as "
                     << "frames being used.\e[0m  Consider reencoding the video with a "
-                    << "smaller key frame interval (GOP length).";
+                    << "smaller key frame interval (GOP length)." << std::endl;
     }
 }
 
