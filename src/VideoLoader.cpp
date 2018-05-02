@@ -749,6 +749,51 @@ int nvvl_video_frame_count_from_file(const char* filename) {
     return frame_count;
 }
 
+int nvvl_get_req_frame_by_time(const char* filename, int ms_time) {
+    av_register_all();
+
+    AVFormatContext* raw_fmt_ctx = nullptr;
+
+    AVDictionary* options = NULL;
+    av_dict_set(&options, "rtsp_transport", "tcp", 0);
+
+    auto ret = avformat_open_input(&raw_fmt_ctx, filename, NULL, &options);
+    if (ret < 0) {
+        std::stringstream err;
+        err << "Could not open file " << filename
+            << ": " << av_err2str(ret);
+        throw std::runtime_error(err.str());
+    }
+
+    auto fmt_ctx = make_unique_av<AVFormatContext>(raw_fmt_ctx, avformat_close_input);
+
+    // is this needed?
+    if (avformat_find_stream_info(fmt_ctx.get(), nullptr) < 0) {
+        throw std::runtime_error(std::string("Could not find stream information in ")
+                                 + filename);
+    }
+
+    auto vid_stream_idx_ = av_find_best_stream(fmt_ctx.get(), AVMEDIA_TYPE_VIDEO,
+                                               -1, -1, nullptr, 0);
+    if (vid_stream_idx_ < 0) {
+        throw std::runtime_error(std::string("Could not find video stream in ") + filename);
+    }
+
+    auto stream = fmt_ctx->streams[vid_stream_idx_];
+
+    AVRational frame_base;
+    if (stream->avg_frame_rate.den == 0 || stream->avg_frame_rate.num == 0) {
+        frame_base = {1, 30};
+    }
+    else {
+        frame_base = {stream->avg_frame_rate.den, stream->avg_frame_rate.num};
+    }
+
+    int frame_index = av_rescale_q(ms_time, AVRational{1, 1000}, frame_base);
+
+    return frame_index;
+}
+
 struct Size nvvl_video_size(VideoLoaderHandle loader) {
     auto vl = reinterpret_cast<NVVL::VideoLoader*>(loader);
     return vl->size();
