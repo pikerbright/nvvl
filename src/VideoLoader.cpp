@@ -268,8 +268,13 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
         auto codec_id = codecpar(stream)->codec_id;
 
         // 1/frame_rate is duration of each frame (or time base of frame_num)
-        file.frame_base_ = AVRational{stream->avg_frame_rate.den,
-                                      stream->avg_frame_rate.num};
+        if (stream->avg_frame_rate.den == 0 || stream->avg_frame_rate.num == 0) {
+            file.frame_base_ = AVRational{1, 30};
+            log_.info() << "use default 30 fps" << std::endl;
+        }
+        else
+            file.frame_base_ = AVRational{stream->avg_frame_rate.den,
+                                          stream->avg_frame_rate.num};
 
 
         log_.debug() << "avg_frame_rate " << stream->avg_frame_rate.den << " " << stream->avg_frame_rate.num << std::endl;
