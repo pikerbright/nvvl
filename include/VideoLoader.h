@@ -86,6 +86,11 @@ struct Size nvvl_video_size_from_file(const char* filename);
 int nvvl_video_frame_count_from_file(const char* filename);
 
 /**
+ * Parses headers of filename to return fps of the video
+ */
+double nvvl_video_fps_from_file(const char* filename);
+
+/**
  * Wrapper for VideoLoader::video_size()
  */
 struct Size nvvl_video_size(VideoLoaderHandle loader);
