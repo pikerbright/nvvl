@@ -67,10 +67,13 @@ class Decoder {
 
     virtual void set_frame_base(AVRational frame_base);
 
+    virtual void set_max_send_frame(int max_num);
+
   protected:
     virtual int decode_av_packet(AVPacket* pkt);
 
     void record_sequence_event_(PictureSequence& sequence);
+    void record_sequence_end_event_(PictureSequence& sequence);
     void use_default_stream();
 
     // We're buddies with PictureSequence so we can forward a visitor

@@ -3,6 +3,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <queue>
+#include <vector>
 
 #include <cuda.h>
 
@@ -48,6 +49,7 @@ class NvDecoder : public Decoder
 
     void set_frame_base(AVRational frame_base) final;
 
+    void set_max_send_frame(int max_num);
   protected:
     int decode_av_packet(AVPacket* pkt) final;
 
@@ -109,7 +111,7 @@ class NvDecoder : public Decoder
 
     std::vector<uint8_t> frame_in_use_;
     Queue<FrameReq> recv_queue_;
-    Queue<CUVIDPARSERDISPINFO*> frame_queue_;
+    Queue<std::pair< CUVIDPARSERDISPINFO*, bool > > frame_queue_;
     Queue<PictureSequence*> output_queue_;
     FrameReq current_recv_;
 
@@ -128,6 +130,8 @@ class NvDecoder : public Decoder
     std::unordered_map<TexID, TextureObjects, tex_hash> textures_;
 
     bool done_;
+    int max_send_frame_;
+    bool req_out_of_range_;
 
     JoiningThread convert_thread_;
 
@@ -140,7 +144,7 @@ class NvDecoder : public Decoder
                                        ScaleMethod scale_method, ChromaUpMethod chroma_method);
     void convert_frames();
     void convert_frame(const MappedFrame& frame, PictureSequence& sequence,
-                       int index);
+                       int index, bool req_out_of_range);
 };
 
 }

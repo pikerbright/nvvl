@@ -421,6 +421,7 @@ void VideoLoader::impl::read_file() {
         auto req = send_queue_.pop();
 
         log_.info() << "Got a request for " << req.filename << " frame " << req.frame
+                    << " count " << req.count
                     << " send_queue_ has " << send_queue_.size() << " frames left"
                     << std::endl;
 
@@ -446,6 +447,7 @@ void VideoLoader::impl::read_file() {
             seek(file, seek_frame);
 
         auto nonkey_frame_count = 0;
+        int max_send_frame = 0;
         while (!done_ && req.count > 0 && av_read_frame(file.fmt_ctx_.get(), &raw_pkt) >= 0) {
             auto pkt = pkt_ptr(&raw_pkt, av_packet_unref);
 
@@ -459,6 +461,9 @@ void VideoLoader::impl::read_file() {
             auto frame = av_rescale_q(pkt->pts,
                                       file.stream_base_,
                                       file.frame_base_);
+
+            if (frame > max_send_frame)
+                max_send_frame = frame;
 
             file.last_frame_ = frame;
             auto key = pkt->flags & AV_PKT_FLAG_KEY;
@@ -586,6 +591,9 @@ void VideoLoader::impl::read_file() {
                 vid_decoder_->decode_packet(pkt.get());
             }
         }
+
+        vid_decoder_->set_max_send_frame(max_send_frame);
+
         // flush the decoder
         vid_decoder_->decode_packet(nullptr);
     }

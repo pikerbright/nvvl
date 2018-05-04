@@ -39,7 +39,7 @@ NvDecoder::NvDecoder(int device_id,
       time_base_{time_base.num, time_base.den},
       frame_in_use_(32), // 32 is cuvid's max number of decode surfaces
       recv_queue_{}, frame_queue_{}, output_queue_{},
-      current_recv_{}, textures_{}, done_{false}
+      current_recv_{}, textures_{}, done_{false}, req_out_of_range_{false}
 {
     if (!codecpar) {
         return;
@@ -327,7 +327,6 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
     auto frame = av_rescale_q(disp_info->timestamp,
                               nv_time_base_, frame_base_);
 
-    log_.debug() << "origin frame " << frame << std::endl;
     log_.debug() << "start handle_display " << disp_info->timestamp
                  << " " << nv_time_base_.num << " " << nv_time_base_.den
                  << " " << frame_base_.num << " " << frame_base_.den
@@ -362,12 +361,19 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
         return 1;
     }
 
-    if (!current_recv_.stream && frame != current_recv_.frame) {
+    if (!current_recv_.stream && frame != current_recv_.frame && frame < max_send_frame_) {
         // TODO This definitely needs better error handling... what if
         // we never get the frame we are waiting for?!
         log_.info() << "Ditching frame " << frame << " since we are waiting for "
                     << "frame " << current_recv_.frame << std::endl;
         return 1;
+    }
+
+    req_out_of_range_ = false;
+    if (current_recv_.frame > max_send_frame_) {
+        req_out_of_range_ = true;
+        log_.info() << "req frame " << current_recv_.frame
+                    << " is larger than max_send_frame " << max_send_frame_ << std::endl;
     }
 
     log_.info() << "\e[1mGoing ahead with frame " << frame
@@ -379,7 +385,14 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
     current_recv_.count--;
 
     frame_in_use_[disp_info->picture_index] = true;
-    frame_queue_.push(disp_info);
+    frame_queue_.push(std::make_pair(disp_info, req_out_of_range_));
+
+    if (current_recv_.frame > max_send_frame_) {
+        req_out_of_range_ = true;
+        log_.info() << "next req frame " << current_recv_.frame
+                    << " is larger than max_send_frame " << max_send_frame_ << std::endl;
+    }
+
     return 1;
 }
 
@@ -453,13 +466,21 @@ void NvDecoder::convert_frames() {
     while (!done_) {
         auto& sequence = *output_queue_.pop();
         if (done_) break;
+
+        if (req_out_of_range_) {
+            record_sequence_end_event_(sequence);
+            log_.debug() << "record_sequence_end_event_" << std::endl;
+            break;
+        }
+
         for (int i = 0; i < sequence.count(); ++i) {
             log_.debug() << "popping frame (" << i << "/" << sequence.count() << ") "
                          << frame_queue_.size() << " reqs left"
                          << std::endl;
-            auto frame = MappedFrame{frame_queue_.pop(), decoder_, stream_};
+            auto frame_packet = frame_queue_.pop();
+            auto frame = MappedFrame{frame_packet.first, decoder_, stream_};
             if (done_) break;
-            convert_frame(frame, sequence, i);
+            convert_frame(frame, sequence, i, frame_packet.second);
         }
         if (done_) break;
         record_sequence_event_(sequence);
@@ -467,8 +488,13 @@ void NvDecoder::convert_frames() {
     log_.info() << "Leaving convert frames" << std::endl;
 }
 
+void NvDecoder::set_max_send_frame(int max_num) {
+    max_send_frame_ = max_num;
+    log_.debug() << "set_max_send_frame " << max_send_frame_ << std::endl;
+}
+
 void NvDecoder::convert_frame(const MappedFrame& frame, PictureSequence& sequence,
-                              int index) {
+                              int index, bool req_out_of_range) {
     auto input_width = decoder_.width();
     auto input_height = decoder_.height();
 
@@ -498,6 +524,9 @@ void NvDecoder::convert_frame(const MappedFrame& frame, PictureSequence& sequenc
     frame_in_use_[frame.disp_info->picture_index] = false;
     auto frame_num = av_rescale_q(frame.disp_info->timestamp,
                                   nv_time_base_, frame_base_);
+
+    if (req_out_of_range)
+        frame_num = -1;
 
     sequence.get_or_add_meta<int>("frame_num")[index] = frame_num;
 }
