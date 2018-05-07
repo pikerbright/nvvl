@@ -30,6 +30,8 @@ class VideoReader(object):
         self.seq_queue = collections.deque()
         self.processing = None
         self.device_id = device_id
+        self.width = None
+        self.height = None
         try:
             log_level = log_levels[log_level]
         except KeyError:
@@ -134,6 +136,57 @@ class VideoReader(object):
         else:
             lib.nvvl_sequence_stream_wait_th(seq)
         lib.nvvl_free_sequence(seq)
+
+    def read_stream(self, path):
+        image_shape = lib.nvvl_video_size_from_file(str.encode(path))
+        self.height = image_shape.height
+        self.width = image_shape.width
+
+        lib.nvvl_read_stream(self.loader, str.encode(path))
+
+    def stream_receive(self, count):
+        seq = lib.nvvl_create_sequence(count)
+
+        self._set_process_desc(self.width, self.height, index_map=list(range(count)))
+
+        tensor_map = self._create_tensor_map()
+
+        for name, desc in self.processing.items():
+            tensor = tensor_map[name]
+            layer = self.ffi.new("struct NVVL_PicLayer*")
+            if desc.tensor_type == torch.cuda.FloatTensor:
+                layer.type = lib.PDT_FLOAT
+            elif desc.tensor_type == torch.cuda.HalfTensor:
+                layer.type = lib.PDT_HALF
+            elif desc.tensor_type == torch.cuda.ByteTensor:
+                layer.type = lib.PDT_BYTE
+
+            strides = tensor[0].stride()
+            try:
+                desc.stride.x = strides[desc.dimension_order.index('w')]
+                desc.stride.y = strides[desc.dimension_order.index('h')]
+                desc.stride.n = strides[desc.dimension_order.index('f')]
+                desc.stride.c = strides[desc.dimension_order.index('c')]
+            except ValueError:
+                raise ValueError("Invalid dimension order")
+            layer.desc = self._get_layer_desc(desc)[0]
+            if desc.index_map_length > 0:
+                layer.index_map = desc.index_map
+                layer.index_map_length = desc.index_map_length
+            else:
+                layer.index_map = self.ffi.NULL
+            layer.data = self.ffi.cast("void*", tensor[0].data_ptr())
+            lib.nvvl_set_layer(seq, layer, str.encode(name))
+
+        lib.nvvl_receive_frames(self.loader, seq)
+
+        lib.nvvl_sequence_stream_wait_th(seq)
+
+        tensors = []
+        for index in range(count):
+            tensors.append(tensor_map["default"][0][index].cpu())
+
+        return tensors
 
     def get_samples(self, filename, indexs):
         max_index = max(indexs)

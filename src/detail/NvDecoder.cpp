@@ -39,7 +39,7 @@ NvDecoder::NvDecoder(int device_id,
       time_base_{time_base.num, time_base.den},
       frame_in_use_(32), // 32 is cuvid's max number of decode surfaces
       recv_queue_{}, frame_queue_{}, output_queue_{},
-      current_recv_{}, textures_{}, done_{false}, req_out_of_range_{false}
+      current_recv_{}, textures_{}, done_{false}, req_out_of_range_{false}, max_send_frame_(INT_MAX)
 {
     if (!codecpar) {
         return;

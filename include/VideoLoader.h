@@ -109,6 +109,12 @@ int nvvl_get_req_frame_by_time(const char* filename, int ms_time);
 void nvvl_read_sequence(VideoLoaderHandle loader, const char* filename,
                         int frame, int count);
 
+
+/**
+ * Wrapper for VideoLoader::read_stream()
+ */
+void nvvl_read_stream(VideoLoaderHandle loader, const char* filename);
+
 /**
  * Wrapper for VideoLoader::receive_frames()
  */
