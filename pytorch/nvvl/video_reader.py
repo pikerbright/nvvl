@@ -338,6 +338,9 @@ class VideoReader(object):
             return tensor_map["default"][0].cpu()
         return {name: tensor[0].cpu() for name, tensor in tensor_map.items()}
 
+    def finish(self):
+        lib.nvvl_finish_video_loader(self.loader)
+
     def destroy(self):
         lib.nvvl_destroy_video_loader(self.loader)
 

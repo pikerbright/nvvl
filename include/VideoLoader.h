@@ -76,6 +76,12 @@ VideoLoaderHandle nvvl_create_video_loader_with_log(int device_id, enum LogLevel
 void nvvl_destroy_video_loader(VideoLoaderHandle loader);
 
 /**
+ * Finish and stop the VideoLoader
+ */
+void nvvl_finish_video_loader(VideoLoaderHandle loader);
+
+
+/**
  * Parses headers of filename to return width and height of the video
  */
 struct Size nvvl_video_size_from_file(const char* filename);

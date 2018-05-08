@@ -681,6 +681,11 @@ void nvvl_destroy_video_loader(VideoLoaderHandle loader) {
     delete vl;
 }
 
+void nvvl_finish_video_loader(VideoLoaderHandle loader) {
+    auto vl = reinterpret_cast<NVVL::VideoLoader*>(loader);
+    vl->finish();
+}
+
 struct Size nvvl_video_size_from_file(const char* filename) {
     av_register_all();
 
