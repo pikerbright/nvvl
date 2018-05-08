@@ -101,9 +101,6 @@ void write_frame(const PictureSequence& sequence) {
         char output_file[256];
         auto frame_num = frame_nums[i];
 
-        if (frame_num == -1)
-            printf("strean end\n");
-
         sprintf(output_file,"./output/%05d.jpg",frame_num);
         cv::imwrite(output_file,host_bgr);
         std::cout << "Wrote frame " << frame_num << " " << output_file << std::endl;
@@ -166,7 +163,7 @@ void write_frame(const PictureSequence& sequence) {
 NVVL::VideoLoader* loader;
 
 template<typename T>
-void process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL::ColorSpace color_space,
+bool process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL::ColorSpace color_space,
                     bool scale, bool normalized, bool flip,
                     NVVL::ScaleMethod scale_method = ScaleMethod_Linear)
 {
@@ -192,7 +189,15 @@ void process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL
     s.set_layer("data", pixels);
 
     loader.receive_frames_sync(s);
+
+    auto frame_num = s.get_meta<int>("frame_num")[0];
+    if (frame_num < 0) {
+        printf("stream end\n");
+        return false;
+    }
     write_frame<T>(s);
+
+    return true;
 }
 
 void read_stream(char* filename, int batch_num)
@@ -206,7 +211,9 @@ void read_stream(char* filename, int batch_num)
 
     for (int i = 0; i < batch_num; i++) {
         //             type               color space     scale  norm   flip
-        process_frames<uint8_t>(loader, size.width, size.height, ColorSpace_RGB, false, false, false); // 0-3
+        auto ret = process_frames<uint8_t>(loader, size.width, size.height, ColorSpace_RGB, false, false, false); // 0-3
+        if (!ret)
+            break;
     }
 
     loader.finish();
