@@ -137,6 +137,12 @@ class VideoReader(object):
             lib.nvvl_sequence_stream_wait_th(seq)
         lib.nvvl_free_sequence(seq)
 
+    """Start to read video stream
+    Parameter
+    ----------
+    path: str
+        The network address of the video stream.
+    """
     def read_stream(self, path):
         image_shape = lib.nvvl_video_size_from_file(str.encode(path))
         self.height = image_shape.height
@@ -144,6 +150,15 @@ class VideoReader(object):
 
         lib.nvvl_read_stream(self.loader, str.encode(path))
 
+    """Get frames data in tensor list
+    Parameter
+    ----------
+    count: int
+        The number of frames to get.
+    Return
+    ----------
+    a list of pytorch tensors contain frames data
+    """
     def stream_receive(self, count):
         seq = lib.nvvl_create_sequence(count)
 
