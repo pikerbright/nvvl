@@ -41,6 +41,9 @@ class VideoReader(object):
         self.loader = lib.nvvl_create_video_loader_with_log(device_id, log_level)
         log.info("Success to init VideoReader device_id {}".format(self.device_id))
 
+    def get_frame_count(self, filename):
+        return lib.nvvl_video_frame_count_from_file(str.encode(filename))
+
     def _create_tensor_map(self, batch_size=1):
         tensor_map = {}
         with torch.cuda.device(self.device_id):
