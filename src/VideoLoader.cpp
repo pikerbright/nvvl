@@ -795,8 +795,6 @@ double nvvl_video_fps_from_file(const char* filename) {
     }
 
     auto stream = fmt_ctx->streams[vid_stream_idx_];
-    AVRational frame_base = {stream->avg_frame_rate.den,
-                             stream->avg_frame_rate.num};
 
     double fps = (double)stream->avg_frame_rate.num / stream->avg_frame_rate.den;
 
