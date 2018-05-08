@@ -161,7 +161,7 @@ class VideoReader(object):
     Return
     ----------
     frame_num: int
-        The number of the first frame.
+        The number of the first frame, if encounter the end of stream, return -1
     tensors: list of tensor
         A list of pytorch tensors contain frames data
     """
