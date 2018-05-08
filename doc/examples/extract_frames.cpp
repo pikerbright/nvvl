@@ -15,7 +15,7 @@
 
 constexpr auto sequence_width = uint16_t{1280};
 constexpr auto sequence_height = uint16_t{720};
-constexpr auto sequence_count = uint16_t{4};
+constexpr auto sequence_count = uint16_t{1};
 constexpr auto scale_width = int16_t{1280/2};
 constexpr auto scale_height = int16_t{720/2};
 
@@ -100,6 +100,10 @@ void write_frame(const PictureSequence& sequence) {
 
         char output_file[256];
         auto frame_num = frame_nums[i];
+
+        if (frame_num == -1)
+            printf("strean end\n");
+
         sprintf(output_file,"./output/%05d.jpg",frame_num);
         cv::imwrite(output_file,host_bgr);
         std::cout << "Wrote frame " << frame_num << " " << output_file << std::endl;

@@ -370,7 +370,7 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
     }
 
     req_out_of_range_ = false;
-    if (current_recv_.frame > max_send_frame_) {
+    if (current_recv_.frame > max_send_frame_ || (current_recv_.stream && max_send_frame_ < INT_MAX)) {
         req_out_of_range_ = true;
         log_.info() << "req frame " << current_recv_.frame
                     << " is larger than max_send_frame " << max_send_frame_ << std::endl;
@@ -387,7 +387,7 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
     frame_in_use_[disp_info->picture_index] = true;
     frame_queue_.push(std::make_pair(disp_info, req_out_of_range_));
 
-    if (current_recv_.frame > max_send_frame_) {
+    if (current_recv_.frame > max_send_frame_ || (current_recv_.stream && max_send_frame_ < INT_MAX)) {
         req_out_of_range_ = true;
         log_.info() << "next req frame " << current_recv_.frame
                     << " is larger than max_send_frame " << max_send_frame_ << std::endl;
@@ -525,8 +525,11 @@ void NvDecoder::convert_frame(const MappedFrame& frame, PictureSequence& sequenc
     auto frame_num = av_rescale_q(frame.disp_info->timestamp,
                                   nv_time_base_, frame_base_);
 
-    if (req_out_of_range)
+    if (req_out_of_range) {
         frame_num = -1;
+        log_.debug() << "Video reader end of stream" << std::endl;
+    }
+
 
     sequence.get_or_add_meta<int>("frame_num")[index] = frame_num;
 }

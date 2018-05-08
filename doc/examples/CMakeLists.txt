@@ -26,7 +26,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 #    CUDA_SEPARABLE_COMPILATION ON
 #    )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC nvvl nvcuvid cuda)
+target_link_libraries(${PROJECT_NAME} PUBLIC nvvl nvcuvid)
 
 set(WITH_OPENCV 1)
 

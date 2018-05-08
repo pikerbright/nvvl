@@ -235,6 +235,7 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
         AVDictionary* options = NULL;
         av_dict_set(&options, "rtsp_transport", "tcp", 0);
         av_dict_set(&options, "max_delay", "500000", 0);
+        av_dict_set(&options, "stimeout", "200000", 0);
 
         if (avformat_open_input(&raw_fmt_ctx, filename.c_str(), NULL, &options) < 0) {
             throw std::runtime_error(std::string("Could not open file ") + filename);

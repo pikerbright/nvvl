@@ -160,7 +160,10 @@ class VideoReader(object):
         The number of frames to get.
     Return
     ----------
-    a list of pytorch tensors contain frames data
+    frame_num: int
+        The number of the first frame.
+    tensors: list of tensor
+        A list of pytorch tensors contain frames data
     """
     def stream_receive(self, count):
         seq = lib.nvvl_create_sequence(count)
@@ -200,11 +203,16 @@ class VideoReader(object):
 
         lib.nvvl_sequence_stream_wait_th(seq)
 
+        frame_nums = lib.nvvl_get_meta_array(seq, lib.PMT_INT, str.encode("frame_num"))
+
+        frame_nums = self.ffi.cast("int *", frame_nums)
+        frame_num = frame_nums[0]
+
         tensors = []
         for index in range(count):
             tensors.append(tensor_map["default"][0][index].cpu())
 
-        return tensors
+        return frame_num, tensors
 
     def get_samples(self, filename, indexs):
         max_index = max(indexs)
