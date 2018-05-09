@@ -121,5 +121,5 @@ export(EXPORT nvvl-targets FILE ${CMAKE_CURRENT_BINARY_DIR}/NVVLTargets.cmake NA
 #Register package in user's package registry
 export(PACKAGE NVVL)
 
-add_subdirectory(doc EXCLUDE_FROM_ALL)
-add_subdirectory(doc/examples EXCLUDE_FROM_ALL)
+#add_subdirectory(doc EXCLUDE_FROM_ALL)
+#add_subdirectory(doc/examples EXCLUDE_FROM_ALL)
