@@ -443,9 +443,10 @@ void VideoLoader::impl::read_file() {
         // correct key frame, we've flushed the decoder, so it needs
         // another key frame to start decoding again
         int seek_frame = 0;
-        if (!req.stream)
+        if (!req.stream) {
             seek_frame = req.frame<3?-2:req.frame;
             seek(file, seek_frame);
+        }
 
         auto nonkey_frame_count = 0;
         int max_send_frame = 0;
