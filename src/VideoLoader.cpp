@@ -551,8 +551,9 @@ void VideoLoader::impl::read_file() {
                     vid_decoder_->decode_packet(fpkt.get());
                 }
                 if (ret != AVERROR(EAGAIN)) {
-                    throw std::runtime_error(std::string("BSF receive packet failed:") +
-                                             av_err2str(ret));
+                    log_.warn() << "BSF receive packet failed:" << std::endl;
+                    //throw std::runtime_error(std::string("BSF receive packet failed:") +
+                    //                         av_err2str(ret));
                 }
 #else
                 AVPacket fpkt;
