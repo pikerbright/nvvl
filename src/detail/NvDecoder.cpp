@@ -128,6 +128,34 @@ NvDecoder::NvDecoder(int device_id,
     convert_thread_ = std::thread{&NvDecoder::convert_frames, this};
 }
 
+void NvDecoder::reset(const CodecParameters *codecpar) {
+    auto codec = Codec::H264;
+    switch (codecpar->codec_id) {
+        case AV_CODEC_ID_H264:
+            codec = Codec::H264;
+            break;
+
+        case AV_CODEC_ID_HEVC:
+            codec = Codec::HEVC;
+            break;
+
+        default:
+            std::cerr << "Invalid codec for NvDecoder\n";
+            return;
+    }
+
+    parser_ = CUVideoParser(codec, this, 20, codecpar->extradata,
+                            codecpar->extradata_size);
+    if (!parser_.initialized()) {
+        std::cerr << "Problem creating video parser\n";
+        return;
+    }
+}
+
+void NvDecoder::reset_flag() {
+    req_out_of_range_ = false;
+}
+
 bool NvDecoder::initialized() const {
     return parser_.initialized();
 }
@@ -372,6 +400,7 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
     req_out_of_range_ = false;
     if (current_recv_.frame > max_send_frame_ || (current_recv_.stream && max_send_frame_ < INT_MAX)) {
         req_out_of_range_ = true;
+        current_recv_.count = 0;
         log_.info() << "req frame " << current_recv_.frame
                     << " is larger than max_send_frame " << max_send_frame_ << std::endl;
     }
@@ -389,6 +418,7 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
 
     if (current_recv_.frame > max_send_frame_ || (current_recv_.stream && max_send_frame_ < INT_MAX)) {
         req_out_of_range_ = true;
+        current_recv_.count = 0;
         log_.info() << "next req frame " << current_recv_.frame
                     << " is larger than max_send_frame " << max_send_frame_ << std::endl;
     }
@@ -467,10 +497,11 @@ void NvDecoder::convert_frames() {
         auto& sequence = *output_queue_.pop();
         if (done_) break;
 
-        if (req_out_of_range_) {
+        if (req_out_of_range_ && frame_queue_.size() == 0) {
             record_sequence_end_event_(sequence);
             log_.debug() << "record_sequence_end_event_" << std::endl;
-            break;
+            req_out_of_range_ = false;
+            continue;
         }
 
         for (int i = 0; i < sequence.count(); ++i) {
@@ -527,6 +558,7 @@ void NvDecoder::convert_frame(const MappedFrame& frame, PictureSequence& sequenc
 
     if (req_out_of_range) {
         frame_num = -1;
+        req_out_of_range_ = false;
         log_.debug() << "Video reader end of stream" << std::endl;
     }
 

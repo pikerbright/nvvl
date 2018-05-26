@@ -98,10 +98,14 @@ int CUVideoDecoder::initialize(CUVIDEOFORMAT* format) {
             (format->coded_width != decoder_info_.ulWidth) ||
             (format->coded_height != decoder_info_.ulHeight) ||
             (format->chroma_format != decoder_info_.ChromaFormat)) {
-            std::cerr << "Encountered a dynamic video format change.\n";
-            return 0;
+            //std::cerr << "Encountered a dynamic video format change.\n";
+
+            if (decoder_) {
+                cucall(cuvidDestroyDecoder(decoder_));
+            }
         }
-        return 1;
+        else
+          return 1;
     }
 
     auto verbose = false;
