@@ -547,6 +547,8 @@ void NvDecoder::convert_frame(const MappedFrame& frame, PictureSequence& sequenc
                                                 input_height,
                                                 l.desc.scale_method,
                                                 l.desc.chroma_up_method);
+            log_.warn() << frame.get_ptr() << " " << frame.get_pitch() << std::endl;
+
             process_frame(textures.chroma, textures.luma,
                           l, output_idx, stream_,
                           input_width, input_height);
