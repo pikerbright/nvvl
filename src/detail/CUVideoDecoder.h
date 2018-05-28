@@ -20,7 +20,7 @@ class CUVideoDecoder {
 
     operator CUvideodecoder() const;
 
-    int initialize(CUVIDEOFORMAT* format);
+    int initialize(CUVIDEOFORMAT* format, CUContext& ctx);
     bool initialized() const;
 
     uint16_t width() const;

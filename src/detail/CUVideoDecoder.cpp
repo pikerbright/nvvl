@@ -92,7 +92,7 @@ CUVideoDecoder& CUVideoDecoder::operator=(CUVideoDecoder&& other) {
     return *this;
 }
 
-int CUVideoDecoder::initialize(CUVIDEOFORMAT* format) {
+int CUVideoDecoder::initialize(CUVIDEOFORMAT* format, CUContext& ctx) {
     if (initialized_) {
         if ((format->codec != decoder_info_.CodecType) ||
             (format->coded_width != decoder_info_.ulWidth) ||
@@ -148,11 +148,13 @@ int CUVideoDecoder::initialize(CUVIDEOFORMAT* format) {
     decoder_info_.ulCreationFlags = cudaVideoCreate_PreferCUVID;
     decoder_info_.vidLock = nullptr;
 
+    cucall(cuCtxPushCurrent(ctx));
     if (cucall(cuvidCreateDecoder(&decoder_, &decoder_info_))) {
         initialized_ = true;
     } else {
         std::cerr << "Problem creating video decoder" << std::endl;
     }
+    cucall(cuCtxPopCurrent(NULL));
     return 1;
 }
 
