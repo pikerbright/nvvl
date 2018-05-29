@@ -98,7 +98,7 @@ NvDecoder::NvDecoder(int device_id,
         use_default_stream();
     }
 
-    stream_.create(false);
+    //stream_.create(false);
     std::cout << "stream addr:" << (void*)(stream_.stream_) << std::endl;
 
     context_ = CUContext(device_);
@@ -566,9 +566,9 @@ void NvDecoder::convert_frame(const MappedFrame& frame, PictureSequence& sequenc
                                                 l.desc.chroma_up_method);
             log_.warn() << static_cast<const void *>(frame.get_ptr()) << " " << frame.get_pitch() << std::endl;
 
-            process_frame(textures.chroma, textures.luma,
-                          l, output_idx, stream_,
-                          input_width, input_height);
+//            process_frame(textures.chroma, textures.luma,
+//                          l, output_idx, stream_,
+//                          input_width, input_height);
         });
 
     frame_in_use_[frame.disp_info->picture_index] = false;

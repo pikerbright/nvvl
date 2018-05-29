@@ -645,7 +645,7 @@ void VideoLoader::impl::receive_frames(PictureSequence& sequence) {
 
 void VideoLoader::receive_frames_sync(PictureSequence& sequence) {
     receive_frames(sequence);
-    sequence.wait();
+    //sequence.wait();
 }
 
 VideoLoaderStats VideoLoader::get_stats() const {

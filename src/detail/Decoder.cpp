@@ -107,7 +107,7 @@ void Decoder::use_default_stream() {
 
 // This has to be here since Decoder is the only friend of PictureSequence
 void Decoder::record_sequence_event_(PictureSequence& sequence) {
-    sequence.pImpl->event_.record(stream_);
+    //sequence.pImpl->event_.record(stream_);
     std::cout << "record addr: " << (void*)(stream_.stream_) << std::endl;
     sequence.pImpl->set_started_(true);
 }
