@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cuda.h>
+#include <string>
 
 namespace NVVL {
 namespace detail {
