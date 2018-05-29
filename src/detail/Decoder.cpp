@@ -10,12 +10,12 @@ namespace detail {
 Logger default_log;
 
 CUStream::CUStream(bool default_stream) : created_{false}, stream_{0} {
-    if (!default_stream) {
-        std::cout << "before init CUStream addr: " << (void*)(&stream_) << std::endl;
-        cucall(cudaStreamCreate(&stream_));
-        std::cout << "after init CUStream addr: " << (void*)(&stream_) << std::endl;
-        created_ = true;
-    }
+//    if (!default_stream) {
+//        std::cout << "before init CUStream addr: " << (void*)(&stream_) << std::endl;
+//        cucall(cudaStreamCreate(&stream_));
+//        std::cout << "after init CUStream addr: " << (void*)(&stream_) << std::endl;
+//        created_ = true;
+//    }
 }
 
 CUStream::~CUStream() {
@@ -41,8 +41,9 @@ CUStream& CUStream::operator=(CUStream&& other) {
 
 void CUStream::create(bool default_stream) {
     if (!default_stream) {
-        std::cout << "cudaStreamCreate" << std::endl;
+        std::cout << "before create CUStream addr: " << (void*)(&stream_) << std::endl;
         cucall(cudaStreamCreate(&stream_));
+        std::cout << "after create CUStream addr: " << (void*)(&stream_) << std::endl;
         created_ = true;
     }
 }
