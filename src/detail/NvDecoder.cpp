@@ -265,10 +265,10 @@ NvDecoder::MappedFrame::MappedFrame(CUVIDPARSERDISPINFO* disp_info,
         throw std::runtime_error("Got an interlaced frame. We don't do interlaced frames.");
     }
 
-    params_.progressive_frame = disp_info->progressive_frame;
-    params_.top_field_first = disp_info->top_field_first;
-    params_.second_field = 0;
-    params_.output_stream = stream;
+//    params_.progressive_frame = disp_info->progressive_frame;
+//    params_.top_field_first = disp_info->top_field_first;
+//    params_.second_field = 0;
+//    params_.output_stream = stream;
 
     if (!cucall(cuvidMapVideoFrame(decoder_, disp_info->picture_index,
                                    &ptr_, &pitch_, &params_))) {
