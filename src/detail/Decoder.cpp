@@ -110,6 +110,7 @@ void Decoder::record_sequence_event_(PictureSequence& sequence) {
 
 void Decoder::record_sequence_end_event_(PictureSequence& sequence) {
     sequence.get_or_add_meta<int>("frame_num")[0] = -1;
+    std::cout << "record addr: " << (void*)(stream_.stream_) << std::endl;
     sequence.pImpl->event_.record(stream_);
     sequence.pImpl->set_started_(true);
 }
