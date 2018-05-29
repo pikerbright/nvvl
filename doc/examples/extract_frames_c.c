@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cuda_runtime.h>
+//#include <cuda_runtime.h>
+#include <cuda.h>
 
 #include "VideoLoader.h"
 

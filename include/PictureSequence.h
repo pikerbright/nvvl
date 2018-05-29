@@ -3,7 +3,7 @@
 #ifndef CFFI
 # include <stddef.h>
 # include <stdint.h>
-# include <cuda_runtime.h>
+//# include <cuda_runtime.h>
 #else
 struct CUstream_st;
 typedef struct CUstream_st* cudaStream_t;
