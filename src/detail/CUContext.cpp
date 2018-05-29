@@ -12,10 +12,10 @@ CUContext::CUContext() : context_{0}, initialized_{false} {
 CUContext::CUContext(CUdevice device, unsigned int flags)
     : device_{device}, context_{0}, initialized_{false} {
     //cucall(cuInit(0));
-//    if (!cucall(cuDevicePrimaryCtxRetain(&context_, device))) {
-//        throw std::runtime_error("cuDevicePrimaryCtxRetain failed, can't go forward without a context");
-//    }
-    cucall(cuCtxCreate(&context_, 0, device));
+    if (!cucall(cuDevicePrimaryCtxRetain(&context_, device))) {
+        throw std::runtime_error("cuDevicePrimaryCtxRetain failed, can't go forward without a context");
+    }
+//    cucall(cuCtxCreate(&context_, 0, device));
     push(__FILE__, __LINE__);
     CUdevice dev;
     if (!cucall(cuCtxGetDevice(&dev))) {
