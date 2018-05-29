@@ -34,8 +34,8 @@ CUContext::CUContext(CUcontext ctx)
 CUContext::~CUContext() {
     if (initialized_) {
         // cuCtxPopCurrent?
-        //cucall(cuDevicePrimaryCtxRelease(device_));
-        cucall(cuCtxPopCurrent(NULL));
+        cucall(cuDevicePrimaryCtxRelease(device_));
+        cucall(cuCtxDestroy(context_));
     }
 }
 
@@ -71,10 +71,10 @@ void CUContext::push(std::string file, int line) const {
     std::cout << "current device: " << device << " " << file << ": " << line << std::endl;
 
     if (current != context_) {
-        if (!cucall(cuCtxPushCurrent(context_))) {
+        if (!cucall(cuCtxSetCurrent(context_))) {
             throw std::runtime_error("Unable to push current context");
         }
-        std::cout << "cuCtxPushCurrent: " << file << ":" << line << std::endl;
+        std::cout << "cuCtxSetCurrent: " << file << ":" << line << std::endl;
     }
 }
 
