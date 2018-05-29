@@ -11,7 +11,9 @@ Logger default_log;
 
 CUStream::CUStream(bool default_stream) : created_{false}, stream_{0} {
     if (!default_stream) {
+        std::cout << "before init CUStream addr: " << (void*)(&stream_) << std::endl;
         cucall(cudaStreamCreate(&stream_));
+        std::cout << "after init CUStream addr: " << (void*)(&stream_) << std::endl;
         created_ = true;
     }
 }
