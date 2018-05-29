@@ -10,10 +10,10 @@ namespace detail {
 Logger default_log;
 
 CUStream::CUStream(bool default_stream) : created_{false}, stream_{0} {
-    if (!default_stream) {
-        cucall(cudaStreamCreate(&stream_));
-        created_ = true;
-    }
+//    if (!default_stream) {
+//        cucall(cudaStreamCreate(&stream_));
+//        created_ = true;
+//    }
 }
 
 CUStream::~CUStream() {
@@ -37,6 +37,12 @@ CUStream& CUStream::operator=(CUStream&& other) {
     return *this;
 }
 
+void CUStream::create(bool default_stream) {
+    if (!default_stream) {
+        cucall(cudaStreamCreate(&stream_));
+        created_ = true;
+    }
+}
 
 CUStream::operator cudaStream_t() {
     return stream_;

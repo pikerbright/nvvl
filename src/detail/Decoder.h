@@ -37,6 +37,7 @@ class CUStream {
     CUStream& operator=(const CUStream&) = delete;
     CUStream(CUStream&&);
     CUStream& operator=(CUStream&&);
+    void create(bool default_stream);
     operator cudaStream_t();
 
   private:
@@ -88,11 +89,12 @@ class Decoder {
     }
 
     const int device_id_;
-    CUStream stream_;
     const CodecParameters* codecpar_;
     AVMediaType codec_type_;
 
     detail::Logger& log_;
+public:
+    CUStream stream_;
 };
 
 
