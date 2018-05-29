@@ -148,13 +148,12 @@ int CUVideoDecoder::initialize(CUVIDEOFORMAT* format, CUContext& ctx) {
     decoder_info_.ulCreationFlags = cudaVideoCreate_PreferCUVID;
     decoder_info_.vidLock = nullptr;
 
-    cucall(cuCtxPushCurrent(ctx));
+    ctx.push();
     if (cucall(cuvidCreateDecoder(&decoder_, &decoder_info_))) {
         initialized_ = true;
     } else {
         std::cerr << "Problem creating video decoder" << std::endl;
     }
-    cucall(cuCtxPopCurrent(NULL));
     return 1;
 }
 
