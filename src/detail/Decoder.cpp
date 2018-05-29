@@ -41,9 +41,9 @@ CUStream& CUStream::operator=(CUStream&& other) {
 
 void CUStream::create(bool default_stream) {
     if (!default_stream) {
-        std::cout << "before create CUStream addr: " << (void*)(&stream_) << std::endl;
+        std::cout << "before create CUStream addr: " << (void*)(stream_) << std::endl;
         cucall(cudaStreamCreate(&stream_));
-        std::cout << "after create CUStream addr: " << (void*)(&stream_) << std::endl;
+        std::cout << "after create CUStream addr: " << (void*)(stream_) << std::endl;
         created_ = true;
     }
 }
