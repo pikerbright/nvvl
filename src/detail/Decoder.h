@@ -40,7 +40,7 @@ class CUStream {
     void create(bool default_stream);
     operator cudaStream_t();
 
-  private:
+public:
     bool created_;
     cudaStream_t stream_;
 };
