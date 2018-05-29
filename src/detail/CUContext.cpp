@@ -56,7 +56,7 @@ CUContext& CUContext::operator=(CUContext&& other) {
     return *this;
 }
 
-void CUContext::push() const {
+void CUContext::push(std::string file, int line) const {
     CUcontext current;
     if (!cucall(cuCtxGetCurrent(&current))) {
         throw std::runtime_error("Unable to get current context");
@@ -65,6 +65,7 @@ void CUContext::push() const {
         if (!cucall(cuCtxPushCurrent(context_))) {
             throw std::runtime_error("Unable to push current context");
         }
+        std::cout << "cuCtxPushCurrent: " << file << ":" << line << std::endl;
     }
 }
 

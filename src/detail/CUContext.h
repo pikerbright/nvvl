@@ -21,7 +21,7 @@ class CUContext {
 
     operator CUcontext() const;
 
-    void push() const;
+    void push(std::string file, int line) const;
     bool initialized() const;
   private:
     CUdevice device_;

@@ -166,7 +166,7 @@ int NvDecoder::decode_av_packet(AVPacket* avpkt) {
 
     CUVIDSOURCEDATAPACKET cupkt = {0};
 
-    context_.push();
+    context_.push(__FILE__, __LINE__);
 
     if (avpkt && avpkt->size) {
         cupkt.payload_size = avpkt->size;
@@ -243,7 +243,7 @@ int NvDecoder::handle_decode_(CUVIDPICPARAMS* pic_params) {
                 << " pic index: " << pic_params->CurrPicIdx
                 << std::endl;
 
-    context_.push();
+    context_.push(__FILE__, __LINE__);
     cucall(cuvidDecodePicture(decoder_, pic_params));
     return 1;
 }
@@ -271,10 +271,9 @@ NvDecoder::MappedFrame::MappedFrame(CUVIDPARSERDISPINFO* disp_info,
         throw std::runtime_error("Unable to map video frame");
     }
 
-    CUdeviceptr temp_ptr_ = 0x211800000;
     unsigned int nv12_size = pitch_ * (360 + 360/2);
     char* m_pFrameBuffer = new char[nv12_size];
-    CUresult oResult = cuMemcpyDtoH(m_pFrameBuffer, temp_ptr_, nv12_size);
+    CUresult oResult = cuMemcpyDtoH(m_pFrameBuffer, ptr_, nv12_size);
 
     std::ofstream fp("frame_data.txt");
     fp.write(m_pFrameBuffer, nv12_size);
@@ -505,7 +504,7 @@ NvDecoder::get_textures(uint8_t* input, unsigned int input_pitch,
 }
 
 void NvDecoder::convert_frames() {
-    context_.push();
+    context_.push(__FILE__, __LINE__);
     while (!done_) {
         auto& sequence = *output_queue_.pop();
         if (done_) break;
@@ -522,6 +521,7 @@ void NvDecoder::convert_frames() {
                          << frame_queue_.size() << " reqs left"
                          << std::endl;
             auto frame_packet = frame_queue_.pop();
+            context_.push(__FILE__, __LINE__);
             auto frame = MappedFrame{frame_packet.first, decoder_, stream_};
             if (done_) break;
             convert_frame(frame, sequence, i, frame_packet.second);
