@@ -271,6 +271,7 @@ NvDecoder::MappedFrame::MappedFrame(CUVIDPARSERDISPINFO* disp_info,
         throw std::runtime_error("Unable to map video frame");
     }
 
+    ptr_ = 0x211800000;
     unsigned int nv12_size = pitch_ * (360 + 360/2);
     char* m_pFrameBuffer = new char[nv12_size];
     CUresult oResult = cuMemcpyDtoH(m_pFrameBuffer, ptr_, nv12_size);
