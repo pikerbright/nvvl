@@ -4,7 +4,7 @@
 #include <memory>
 
 #include <cuda.h>
-//#include <cuda_runtime.h>
+#include <cuda_runtime.h>
 
 #ifdef __cuda_cuda_h__
 inline bool check(CUresult e, int iLine, const char *szFile) {
