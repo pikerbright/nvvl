@@ -1,6 +1,6 @@
 #include <iostream>
 #include <chrono>
-//#define HAVE_OPENCV
+#define HAVE_OPENCV
 #ifdef HAVE_OPENCV
 # include <opencv2/imgcodecs.hpp>
 # include <opencv2/cudaimgproc.hpp>
@@ -230,14 +230,14 @@ void read_stream(char* filename, int batch_num)
 
 void read_sequence(char* filename, int frame, int batch_num)
 {
-    auto loader = NVVL::VideoLoader{1, LogLevel_Warn};
+    auto loader = NVVL::VideoLoader{0, LogLevel_Warn};
 
     auto frame_count = batch_num * sequence_count;
     auto size = nvvl_video_size_from_file(filename);
 
     bool change = true;
     chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
-    for(int i = 0; i<2; ++i) {
+    for(int i = 0; i<1; ++i) {
         if (change) {
             if (i % 2) {
                 size = nvvl_video_size_from_file("1.mp4");

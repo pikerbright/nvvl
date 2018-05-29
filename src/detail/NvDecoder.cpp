@@ -242,6 +242,7 @@ int NvDecoder::handle_decode_(CUVIDPICPARAMS* pic_params) {
                 << " pic index: " << pic_params->CurrPicIdx
                 << std::endl;
 
+    context_.push();
     cucall(cuvidDecodePicture(decoder_, pic_params));
     return 1;
 }
