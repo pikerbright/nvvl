@@ -61,6 +61,11 @@ void CUContext::push(std::string file, int line) const {
     if (!cucall(cuCtxGetCurrent(&current))) {
         throw std::runtime_error("Unable to get current context");
     }
+
+    CUdevice device;
+    cuCtxGetDevice(&device);
+    std::cout << "current device: " << device << std::endl;
+
     if (current != context_) {
         if (!cucall(cuCtxPushCurrent(context_))) {
             throw std::runtime_error("Unable to push current context");
