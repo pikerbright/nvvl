@@ -66,7 +66,7 @@ void CUContext::push(std::string file, int line) const {
 
     CUdevice device;
     cuCtxGetDevice(&device);
-    std::cout << "current device: " << device << std::endl;
+    std::cout << "current device: " << device << " " << file << ": " << line << std::endl;
 
     if (current != context_) {
         if (!cucall(cuCtxPushCurrent(context_))) {
