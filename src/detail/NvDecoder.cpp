@@ -98,9 +98,10 @@ NvDecoder::NvDecoder(int device_id,
         use_default_stream();
     }
 
-    context_ = CUContext(device_);
     stream_.create(false);
     std::cout << "stream addr:" << (void*)(stream_.stream_) << std::endl;
+
+    context_ = CUContext(device_);
 
     if (!context_.initialized()) {
         std::cerr << "Problem initializing context, not initializing VideoDecoder\n";
