@@ -22,7 +22,7 @@ CUContext::CUContext(CUdevice device, unsigned int flags)
         throw std::runtime_error("Unable to get device");
     }
     initialized_ = true;
-    //cucall(cuCtxSynchronize());
+    cucall(cuCtxSynchronize());
 }
 
 CUContext::CUContext(CUcontext ctx)
