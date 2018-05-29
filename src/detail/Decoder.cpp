@@ -11,9 +11,9 @@ Logger default_log;
 
 CUStream::CUStream(bool default_stream) : created_{false}, stream_{0} {
 //    if (!default_stream) {
-//        std::cout << "before init CUStream addr: " << (void*)(&stream_) << std::endl;
+//        std::cout << "before init CUStream addr: " << (void*)(stream_) << std::endl;
 //        cucall(cudaStreamCreate(&stream_));
-//        std::cout << "after init CUStream addr: " << (void*)(&stream_) << std::endl;
+//        std::cout << "after init CUStream addr: " << (void*)(stream_) << std::endl;
 //        created_ = true;
 //    }
 }
@@ -108,7 +108,7 @@ void Decoder::use_default_stream() {
 // This has to be here since Decoder is the only friend of PictureSequence
 void Decoder::record_sequence_event_(PictureSequence& sequence) {
     sequence.pImpl->event_.record(stream_);
-    std::cout << "record addr: " << (void*)&(stream_.stream_) << std::endl;
+    std::cout << "record addr: " << (void*)(stream_.stream_) << std::endl;
     sequence.pImpl->set_started_(true);
 }
 
