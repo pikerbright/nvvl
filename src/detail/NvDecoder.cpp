@@ -10,6 +10,7 @@
 #include <nvml.h>
 
 #include <math.h>
+#include <fstream>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -269,6 +270,16 @@ NvDecoder::MappedFrame::MappedFrame(CUVIDPARSERDISPINFO* disp_info,
                                    &ptr_, &pitch_, &params_))) {
         throw std::runtime_error("Unable to map video frame");
     }
+
+    unsigned int nv12_size = pitch_ * (360 + 360/2);
+    char* m_pFrameBuffer = new char[nv12_size];
+    CUresult oResult = cuMemcpyDtoH(m_pFrameBuffer, ptr_, nv12_size);
+
+    std::ofstream fp("frame_data.txt");
+    fp.write(m_pFrameBuffer, nv12_size);
+    fp.close();
+
+    delete m_pFrameBuffer;
     valid_ = true;
 }
 
