@@ -15,7 +15,7 @@ CUContext::CUContext(CUdevice device, unsigned int flags)
     if (!cucall(cuDevicePrimaryCtxRetain(&context_, device))) {
         throw std::runtime_error("cuDevicePrimaryCtxRetain failed, can't go forward without a context");
     }
-    push();
+    push(__FILE__, __LINE__);
     CUdevice dev;
     if (!cucall(cuCtxGetDevice(&dev))) {
         throw std::runtime_error("Unable to get device");
