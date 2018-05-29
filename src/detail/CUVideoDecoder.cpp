@@ -148,7 +148,7 @@ int CUVideoDecoder::initialize(CUVIDEOFORMAT* format, CUContext& ctx) {
     decoder_info_.ulCreationFlags = cudaVideoCreate_PreferCUVID;
     decoder_info_.vidLock = nullptr;
 
-    ctx.push();
+    ctx.push(__FILE__, __LINE__);
     if (cucall(cuvidCreateDecoder(&decoder_, &decoder_info_))) {
         initialized_ = true;
     } else {
