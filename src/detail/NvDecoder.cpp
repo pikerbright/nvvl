@@ -99,7 +99,7 @@ NvDecoder::NvDecoder(int device_id,
     }
 
     context_ = CUContext(device_);
-    stream_.create(false);
+//    stream_.create(false);
     std::cout << "stream addr:" << (void*)&(stream_.stream_) << std::endl;
 
     if (!context_.initialized()) {
