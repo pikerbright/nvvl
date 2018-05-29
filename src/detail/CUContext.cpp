@@ -18,12 +18,13 @@ CUContext::CUContext(CUdevice device, unsigned int flags)
     cucall(cuCtxCreate(&context_, 0, device));
     push(__FILE__, __LINE__);
     push(__FILE__, __LINE__);
+    push(__FILE__, __LINE__);
     CUdevice dev;
     if (!cucall(cuCtxGetDevice(&dev))) {
         throw std::runtime_error("Unable to get device");
     }
     initialized_ = true;
-    cucall(cuCtxSynchronize());
+    //cucall(cuCtxSynchronize());
 }
 
 CUContext::CUContext(CUcontext ctx)
