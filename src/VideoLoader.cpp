@@ -200,6 +200,10 @@ void VideoLoader::read_stream(std::string filename) {
 void VideoLoader::impl::read_sequence(std::string filename, int frame, int count) {
     auto req = detail::FrameReq{filename, frame, count, false};
     // give both reader thread and decoder a copy of what is coming
+
+    if (vid_decoder_)
+        vid_decoder_->reset_flag();
+
     send_queue_.push(req);
 }
 
@@ -208,6 +212,10 @@ void VideoLoader::impl::read_stream(std::string filename) {
     int count = INT_MAX;
     auto req = detail::FrameReq{filename, frame, count, true};
     // give both reader thread and decoder a copy of what is coming
+
+    if (vid_decoder_)
+        vid_decoder_->reset_flag();
+
     send_queue_.push(req);
 }
 

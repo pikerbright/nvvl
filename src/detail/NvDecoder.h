@@ -34,6 +34,7 @@ class NvDecoder : public Decoder
               AVRational time_base);
 
     bool initialized() const;
+    void reset_flag();
 
     static int CUDAAPI handle_sequence(void* user_data, CUVIDEOFORMAT* format);
     static int CUDAAPI handle_decode(void* user_data, CUVIDPICPARAMS* pic_params);
