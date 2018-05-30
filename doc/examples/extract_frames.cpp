@@ -1,5 +1,4 @@
 #include <iostream>
-#include <chrono>
 //#define HAVE_OPENCV
 #ifdef HAVE_OPENCV
 # include <opencv2/imgcodecs.hpp>
@@ -14,8 +13,6 @@
 #include "VideoLoader.h"
 #include "cuda/utils.h"
 
-using namespace std;
-
 constexpr auto sequence_width = uint16_t{1280};
 constexpr auto sequence_height = uint16_t{720};
 constexpr auto sequence_count = uint16_t{1};
@@ -23,7 +20,7 @@ constexpr auto scale_width = int16_t{1280/2};
 constexpr auto scale_height = int16_t{720/2};
 
 using PictureSequence = NVVL::PictureSequence;
-static int g_count = 0;
+
 template<typename T>
 T* new_data(size_t* pitch, size_t width, size_t height) {
     T* data;
@@ -104,7 +101,7 @@ void write_frame(const PictureSequence& sequence) {
         char output_file[256];
         auto frame_num = frame_nums[i];
 
-        sprintf(output_file,"./output/%05d.jpg", g_count++);
+        sprintf(output_file,"./output/%05d.jpg",frame_num);
         cv::imwrite(output_file,host_bgr);
         std::cout << "Wrote frame " << frame_num << " " << output_file << std::endl;
     }
@@ -136,7 +133,7 @@ template<typename T>
 void write_frame(const PictureSequence& sequence) {
     constexpr auto sample_count = 100;
     auto frame_nums = sequence.get_meta<int>("frame_num");
-    //std::cout << "Got a sequence of size: " << sequence.count() << std::endl;
+    std::cout << "Got a sequence of size: " << sequence.count() << std::endl;
     for (int i = 0; i < sequence.count(); ++i) {
         auto pixels = sequence.get_layer<T>("data", i);
         size_t data_stride = 0;
@@ -230,40 +227,19 @@ void read_stream(char* filename, int batch_num)
 
 void read_sequence(char* filename, int frame, int batch_num)
 {
-    auto loader = NVVL::VideoLoader{0, LogLevel_Warn};
+    auto loader = NVVL::VideoLoader{0, LogLevel_Debug};
 
     auto frame_count = batch_num * sequence_count;
+
+    loader.read_sequence(filename, frame, frame_count);
+
     auto size = nvvl_video_size_from_file(filename);
+    std::cout << "file resolution " << size.width << " " << size.height << std::endl;
 
-    bool change = true;
-    chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
-    for(int i = 0; i<4; ++i) {
-        if (change) {
-            if (i % 2) {
-                size = nvvl_video_size_from_file("1.mp4");
-                loader.read_sequence("1.mp4", frame, frame_count);
-            }
-            else {
-                size = nvvl_video_size_from_file("c.mp4");
-                loader.read_sequence("c.mp4", frame, frame_count);
-            }
-        }
-        else {
-            loader.read_sequence(filename, frame, frame_count);
-        }
-
-        std::cout << "file resolution " << size.width << " " << size.height << std::endl;
-
-        for (int i = 0; i < batch_num; i++) {
-            //             type               color space     scale  norm   flip
-            process_frames<uint8_t>(loader, size.width, size.height, ColorSpace_RGB, false, false, false); // 0-3
-        }
-
+    for (int i = 0; i < batch_num; i++) {
+        //             type               color space     scale  norm   flip
+        process_frames<uint8_t>(loader, size.width, size.height, ColorSpace_RGB, false, false, false); // 0-3
     }
-
-    chrono::steady_clock::time_point t2 = chrono::steady_clock::now();
-    chrono::duration<double> time_used = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
-    cout << "用时：" << time_used.count() << " 秒。" << endl;
 
     loader.finish();
     auto stats = loader.get_stats();

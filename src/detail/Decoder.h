@@ -57,10 +57,6 @@ class Decoder {
 
     int decode_packet(AVPacket* pkt);
 
-    virtual void reset(const CodecParameters *codecpar){}
-
-    virtual void reset_flag(){}
-
     virtual void push_req(FrameReq req);
 
     virtual void receive_frames(PictureSequence& sequence);

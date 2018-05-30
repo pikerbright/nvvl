@@ -201,8 +201,6 @@ void VideoLoader::impl::read_sequence(std::string filename, int frame, int count
     auto req = detail::FrameReq{filename, frame, count, false};
     // give both reader thread and decoder a copy of what is coming
     send_queue_.push(req);
-    if (vid_decoder_)
-        vid_decoder_->reset_flag();
 }
 
 void VideoLoader::impl::read_stream(std::string filename) {
@@ -211,8 +209,6 @@ void VideoLoader::impl::read_stream(std::string filename) {
     auto req = detail::FrameReq{filename, frame, count, true};
     // give both reader thread and decoder a copy of what is coming
     send_queue_.push(req);
-    if (vid_decoder_)
-        vid_decoder_->reset_flag();
 }
 
 Size VideoLoader::size() const {
@@ -320,8 +316,7 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
                     << " instead of "
                     << width_ << "x" << height_ << " or codec "
                     << codec_id << " != " << codec_id_ << ")";
-                vid_decoder_->reset(codecpar(stream));
-                //throw std::runtime_error(err.str());
+                throw std::runtime_error(err.str());
             }
         }
         vid_decoder_->set_time_base(stream->time_base);

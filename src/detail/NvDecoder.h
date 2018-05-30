@@ -35,9 +35,6 @@ class NvDecoder : public Decoder
 
     bool initialized() const;
 
-    void reset(const CodecParameters *codecpar);
-    void reset_flag();
-
     static int CUDAAPI handle_sequence(void* user_data, CUVIDEOFORMAT* format);
     static int CUDAAPI handle_decode(void* user_data, CUVIDPICPARAMS* pic_params);
     static int CUDAAPI handle_display(void* user_data, CUVIDPARSERDISPINFO* disp_info);
