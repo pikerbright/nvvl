@@ -18,6 +18,7 @@ constexpr auto sequence_height = uint16_t{720};
 constexpr auto sequence_count = uint16_t{1};
 constexpr auto scale_width = int16_t{1280/2};
 constexpr auto scale_height = int16_t{720/2};
+constexpr auto device_id = 1;
 
 using PictureSequence = NVVL::PictureSequence;
 
@@ -167,7 +168,7 @@ bool process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL
                     bool scale, bool normalized, bool flip,
                     NVVL::ScaleMethod scale_method = ScaleMethod_Linear)
 {
-    auto s = PictureSequence{sequence_count};
+    auto s = PictureSequence{sequence_count, device_id};
 
     auto pixels = PictureSequence::Layer<T>{};
     auto data_ptr = get_data<T>(&pixels.desc.stride.y, width, height);
