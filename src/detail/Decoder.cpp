@@ -14,6 +14,7 @@ CUStream::CUStream(int device_id, bool default_stream) : created_{false}, stream
         int orig_device;
         cudaGetDevice(&orig_device);
         auto set_device = false;
+        std::cout << "orig_device: " << orig_device << " device_id: " << device_id << std::endl;
         if (device_id >= 0 && orig_device != device_id) {
             set_device = true;
             cudaSetDevice(device_id);
