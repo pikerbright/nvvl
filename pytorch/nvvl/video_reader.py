@@ -141,7 +141,7 @@ class VideoReader(object):
 
         lib.nvvl_free_sequence(seq)
 
-        return true if ret == 0 else false
+        return True if ret == 0 else False
 
     """Start to read video stream
     Parameter
