@@ -128,7 +128,7 @@ class VideoReader(object):
         self.tensor_queue.append(tensor_map)
         self.seq_queue.append(seq)
 
-    def _finish_reveive(self, synchronous=False):
+    def _finish_reveive(self, synchronous=True):
         if not self.seq_queue:
             raise RuntimeError("Unmatched receive")
 
