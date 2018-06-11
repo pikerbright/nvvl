@@ -230,6 +230,7 @@ void read_sequence(char* filename, int frame, int batch_num)
 {
     auto loader = NVVL::VideoLoader{device_id, LogLevel_Debug};
 
+    auto xframe_count = loader.frame_count(filename);
     auto frame_count = batch_num * sequence_count;
 
     loader.read_sequence(filename, frame, frame_count);
