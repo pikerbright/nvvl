@@ -190,10 +190,12 @@ int VideoLoader::impl::frame_count(std::string filename) {
 
 
 void VideoLoader::read_sequence(std::string filename, int frame, int count) {
+    pImpl->frame_count(filename);
     pImpl->read_sequence(filename, frame, count);
 }
 
 void VideoLoader::read_stream(std::string filename) {
+    pImpl->frame_count(filename);
     pImpl->read_stream(filename);
 }
 
