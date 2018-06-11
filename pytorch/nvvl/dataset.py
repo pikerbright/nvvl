@@ -105,7 +105,7 @@ class ProcessDesc(object):
         elif type == "half":
             self.tensor_type = torch.cuda.HalfTensor
         elif type == "byte":
-            self.tensor_type = torch.cuda.Bytetensor
+            self.tensor_type = torch.cuda.ByteTensor
         else:
             raise ValueError("Unknown type")
 
@@ -206,7 +206,11 @@ class VideoDataset(torch.utils.data.Dataset):
         self.start_index = []
         for f in filenames:
             count = lib.nvvl_frame_count(self.loader, str.encode(f));
-            count -= self.sequence_length + 1
+            if count < self.sequence_length:
+                print("NVVL WARNING: Ignoring", f, "because it only has", count,
+                      "frames and the sequence length is", self.sequence_length)
+                continue
+            count = count - self.sequence_length + 1
             self.frame_counts.append(count)
             self.total_frames += count
             self.start_index.append(self.total_frames) # purposefully off by one for bisect to work
@@ -280,7 +284,7 @@ class VideoDataset(torch.utils.data.Dataset):
         return d
 
     def _start_receive(self, tensor_map, index=0):
-        seq = lib.nvvl_create_sequence(self.sequence_length)
+        seq = lib.nvvl_create_sequence_device(self.sequence_length, self.device_id)
 
         for name, desc in self.processing.items():
             tensor = tensor_map[name]
@@ -331,8 +335,9 @@ class VideoDataset(torch.utils.data.Dataset):
 
     def _create_tensor_map(self, batch_size=1):
         tensor_map = {}
-        for name, desc in self.processing.items():
-            tensor_map[name] = desc.tensor_type(batch_size, *desc.get_dims())
+        with torch.cuda.device(self.device_id):
+            for name, desc in self.processing.items():
+                tensor_map[name] = desc.tensor_type(batch_size, *desc.get_dims())
         return tensor_map
 
     def __getitem__(self, index):

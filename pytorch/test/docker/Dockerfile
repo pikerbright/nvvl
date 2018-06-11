@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/pytorch:18.02-py3
+FROM nvcr.io/nvidia/pytorch:18.03-py3
 
 ARG FFMPEG_VERSION=3.4.2
 
@@ -16,7 +16,7 @@ RUN apt-get install -y \
     cd /tmp && wget -q http://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2 && \
     tar xf ffmpeg-$FFMPEG_VERSION.tar.bz2 && \
     rm ffmpeg-$FFMPEG_VERSION.tar.bz2 && \
-    cd /tmp/ffmpeg-$FFMPEG_VERSION && \
+    cd ffmpeg-$FFMPEG_VERSION && \
     ./configure \
     --prefix=/usr/local \
     --disable-static --enable-shared \
@@ -41,14 +41,28 @@ RUN apt-get install -y \
     apt-get remove -y yasm libx264-dev libx265-dev && \
     apt-get auto-remove -y
 
-# nvvl build deps
-RUN pip install --upgrade cmake
+# install stub library since driver libs aren't available at image build time
+# this is a temporary requirement that will go away in future cuda versions
+# libnvcuvid.so was created using the make-stub.sh script
+COPY libnvcuvid.so /usr/local/cuda/lib64/stubs
 
-# nvidia-docker only provides libraries for runtime use, not for
-# development, to hack it so we can develop inside a container (not a
-# normal or supported practice), we need to make an unversioned
-# symlink so gcc can find the library.  Additional, different
-# nvidia-docker versions put the lib in different places, so we make
-# symlinks for both places.
-RUN ln -s /usr/local/nvidia/lib64/libnvcuvid.so.1 /usr/local/lib/libnvcuvid.so && \
-    ln -s libnvcuvid.so.1 /usr/lib/x86_64-linux-gnu/libnvcuvid.so
+# install nvvl
+RUN pip install --upgrade cmake && \
+    apt-get install -y pkg-config && \
+    cd /tmp && \
+    wget https://github.com/NVIDIA/nvvl/archive/master.tar.gz -O nvvl.tar.gz && \
+    mkdir nvvl && \
+    tar xf nvvl.tar.gz -C nvvl --strip-components 1 && \
+    rm nvvl.tar.gz && \
+    cd nvvl/pytorch && \
+    python3 setup.py install && \
+    pip uninstall -y cmake && \
+    apt-get remove -y pkg-config && \
+    apt-get autoremove -y
+
+RUN pip install scikit-image psutil
+
+RUN git clone https://github.com/dukebw/lintel.git /workspace/lintel && \
+    cd /workspace/lintel && \
+    pip install . && \
+    rm -rf /workspace/lintel

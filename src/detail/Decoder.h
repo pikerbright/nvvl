@@ -31,7 +31,7 @@ struct FrameReq {
 
 class CUStream {
   public:
-    CUStream(bool default_stream);
+    CUStream(int device_id, bool default_stream);
     ~CUStream();
     CUStream(const CUStream&) = delete;
     CUStream& operator=(const CUStream&) = delete;

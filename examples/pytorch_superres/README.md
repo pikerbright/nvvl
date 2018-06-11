@@ -28,14 +28,14 @@ time.
 
 | Data loader | Input resolution | Crop size\* | Numerical precision | PyTorch loader Workers (.png only) | Batch size | CPU load\*\* | Peak host memory (%) | Disk space for dataset(GB) | Per iteration data time (ms)\*\*\* |
 | ---- | ----- | ---- | ---- | --- | - | -- | ---- | ----- | ---- |
-| NVVL | 540p  | None | fp32 | N/A | 7 | 10 | 4.0  | 0.592 | 9.1  |
-| .png | 540p  | None | fp32 | 10  | 7 | 17 | 4.7  | 23    | 27.3 |
-| NVVL | 540p  | None | fp16 | N/A | 7 | 10 | 4.0  | 0.592 | 2.1  |
-| .png | 540p  | None | fp16 | 10  | 7 | 19 | 4.7  | 23    | 31.5 |
-| NVVL | 720p  | 540p | fp32 | N/A | 4 | 10 | 4.0  | 0.961 | 2.8  |
-| .png | 720p  | 540p | fp32 | 10  | 4 | 18 | 4.7  | 38    | 26.6 |
-| NVVL | 720p  | 540p | fp16 | N/A | 4 | 10 | 4.0  | 0.961 | 3.5  |
-| .png | 720p  | 540p | fp16 | 10  | 4 | 20 | 4.8  | 38    | 26.6 |
+| NVVL | 540p  | None | fp32 | N/A | 7 | 10 | 4.0  | 0.592 | 0.91 |
+| .png | 540p  | None | fp32 | 10  | 7 | 17 | 4.7  | 23    | 2.73 |
+| NVVL | 540p  | None | fp16 | N/A | 7 | 10 | 4.0  | 0.592 | 0.21 |
+| .png | 540p  | None | fp16 | 10  | 7 | 19 | 4.7  | 23    | 3.15 |
+| NVVL | 720p  | 540p | fp32 | N/A | 4 | 10 | 4.0  | 0.961 | 0.28 |
+| .png | 720p  | 540p | fp32 | 10  | 4 | 18 | 4.7  | 38    | 2.66 |
+| NVVL | 720p  | 540p | fp16 | N/A | 4 | 10 | 4.0  | 0.961 | 0.35 |
+| .png | 720p  | 540p | fp16 | 10  | 4 | 20 | 4.8  | 38    | 2.66 |
 
 \* Random cropping
 
@@ -105,22 +105,22 @@ the data for training you should run the following steps:
 ```bash
 nvidia-docker run --rm -it --ipc=host --net=host -e NVIDIA_DRIVER_CAPABILITIES=video,compute,utility -v $PWD:/workspace -v <data_dir>:<data_dir> -u $(id -u):$(id -g) vsrnet /bin/bash
 
-python ./tools/split_scenes.py --raw_data <data_dir> --out_data <data_dir>
+python ./tools/split_scenes.py --raw_data <path_to_mp4_file> --out_data <data_dir>
 ```
 
-The scenes will be written to `<data_dir>/4K/scenes`.  The scenes will
+The scenes will be written to `<data_dir>/orig/scenes`.  The scenes will
 be split into training and validation folders.
 
-2. Convert the scenes to a lower resolution:
+2. Transcode the scenes to have a smaller keyframe interval and possibly a lower resolution:
 
 ```bash
 nvidia-docker run --rm -it --ipc=host --net=host -e NVIDIA_DRIVER_CAPABILITIES=video,compute,utility -v $PWD:/workspace -v <data_dir>:<data_dir> -u $(id -u):$(id -g) vsrnet /bin/bash
 
-python ./tools/downsample_scenes.py --master_data <data_dir> --resolution <resolution>
+python ./tools/transcode_scenes.py --master_data <data_dir> --resolution <resolution>
 ```
 
-where `<resolution>` can be one of: `1080p`, `720p` or `540p`.  The downsampled scenes will be written to `<data_dir>/<resolution>/scenes` and split into
-training and validation folders.
+where `<resolution>` can be one of: '4K', `1080p`, `720p` or `540p`.  The transcoded scenes will be written to `<data_dir>/<resolution>/scenes` and split into
+training and validation folders. Run the script with `--help` to see more options. Note that while you can split and transcode the original video in one step, we found it to be much faster to split first, then transcode.
 
 3. Extract .png frames from scene .mp4 files:
 

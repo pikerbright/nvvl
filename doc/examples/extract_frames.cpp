@@ -18,6 +18,7 @@ constexpr auto sequence_height = uint16_t{720};
 constexpr auto sequence_count = uint16_t{1};
 constexpr auto scale_width = int16_t{1280/2};
 constexpr auto scale_height = int16_t{720/2};
+constexpr auto device_id = 1;
 
 using PictureSequence = NVVL::PictureSequence;
 
@@ -67,7 +68,7 @@ cv::cuda::GpuMat get_pixels<half>(const PictureSequence& sequence, int index,
     auto pixels = sequence.get_layer<half>("data", index);
     auto channels = std::vector<cv::cuda::GpuMat>();
     for (auto i : channel_order) {
-        auto channel = cv::cuda::GpuMat((int)pixels.desc.height, (int)pixels.desc.width, CV_32FC1);
+        auto channel = cv::cuda::GpuMat(pixels.desc.height, pixels.desc.width, CV_32FC1);
 
         half2float(pixels.data + pixels.desc.stride.c*i, pixels.desc.stride.y,
                    pixels.desc.width, pixels.desc.height,
@@ -167,7 +168,7 @@ bool process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL
                     bool scale, bool normalized, bool flip,
                     NVVL::ScaleMethod scale_method = ScaleMethod_Linear)
 {
-    auto s = PictureSequence{sequence_count};
+    auto s = PictureSequence{sequence_count, device_id};
 
     auto pixels = PictureSequence::Layer<T>{};
     auto data_ptr = get_data<T>(&pixels.desc.stride.y, width, height);
@@ -203,7 +204,7 @@ bool process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL
 
 void read_stream(char* filename, int batch_num)
 {
-    auto loader = NVVL::VideoLoader{0, LogLevel_Debug};
+    auto loader = NVVL::VideoLoader{device_id, LogLevel_Debug};
 
     loader.read_stream(filename);
 
@@ -227,7 +228,7 @@ void read_stream(char* filename, int batch_num)
 
 void read_sequence(char* filename, int frame, int batch_num)
 {
-    auto loader = NVVL::VideoLoader{0, LogLevel_Debug};
+    auto loader = NVVL::VideoLoader{device_id, LogLevel_Debug};
 
     auto frame_count = batch_num * sequence_count;
 
