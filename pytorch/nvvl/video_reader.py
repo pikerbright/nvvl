@@ -139,8 +139,9 @@ class VideoReader(object):
         else:
             ret = lib.nvvl_sequence_stream_wait_th(seq)
 
-        print("ret:{}".format(ret))
         lib.nvvl_free_sequence(seq)
+
+        return true if ret == 0 else false
 
     """Start to read video stream
     Parameter
@@ -262,12 +263,15 @@ class VideoReader(object):
             self._start_receive(filename, index, 1)
 
         tensors = []
+        ret = true
         for index in indexs:
-            self._finish_reveive()
+            r = self._finish_reveive()
+            if not r:
+                ret = false
             t = self.tensor_queue.popleft()
             tensors.append(t["default"][0].cpu())
 
-        return tensors
+        return tensors if ret else None
 
     def get_samples_old_sync(self, filename, indexs):
         if not self.width or not self.height:
