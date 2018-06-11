@@ -147,9 +147,10 @@ class VideoReader(object):
         The network address of the video stream.
     """
     def read_stream(self, path):
-        image_shape = lib.nvvl_video_size_from_file(str.encode(path))
-        self.height = image_shape.height
-        self.width = image_shape.width
+        if not self.width or self.height:
+            image_shape = lib.nvvl_video_size_from_file(str.encode(path))
+            self.height = image_shape.height
+            self.width = image_shape.width
 
         lib.nvvl_read_stream(self.loader, str.encode(path))
 
@@ -219,15 +220,18 @@ class VideoReader(object):
         min_index = min(indexs)
 
         length = max_index - min_index + 1
-        image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
-        height = image_shape.height
-        width = image_shape.width
+
+        if not self.width or not self.height
+            image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
+            self.height = image_shape.height
+            self.width = image_shape.width
+
         index_map = [-1] * length
 
         for i, index in enumerate(indexs):
             index_map[index - min_index] = i
 
-        self._set_process_desc(width, height, index_map=index_map)
+        self._set_process_desc(self.width, self.height, index_map=index_map)
 
         # if isinstance(indexs, int):
         #     indexs = [indexs]
@@ -242,12 +246,12 @@ class VideoReader(object):
         return tensors
 
     def get_samples_old(self, filename, indexs):
+        if not self.width or not self.height:
+            image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
+            self.height = image_shape.height
+            self.width = image_shape.width
 
-        image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
-        height = image_shape.height
-        width = image_shape.width
-
-        self._set_process_desc(width, height, index_map=[0])
+        self._set_process_desc(self.width, self.height, index_map=[0])
 
         if isinstance(indexs, int):
             indexs = [indexs]
@@ -264,12 +268,12 @@ class VideoReader(object):
         return tensors
 
     def get_samples_old_sync(self, filename, indexs):
+        if not self.width or not self.height:
+            image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
+            self.height = image_shape.height
+            self.width = image_shape.width
 
-        image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
-        height = image_shape.height
-        width = image_shape.width
-
-        self._set_process_desc(width, height, index_map=[0])
+        self._set_process_desc(self.width, self.height, index_map=[0])
 
         if isinstance(indexs, int):
             indexs = [indexs]
@@ -303,11 +307,12 @@ class VideoReader(object):
 
         seq = lib.nvvl_create_sequence(length)
 
-        image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
-        height = image_shape.height
-        width = image_shape.width
+        if not self.width or not self.height:
+            image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
+            self.height = image_shape.height
+            self.width = image_shape.width
 
-        self._set_process_desc(width, height)
+        self._set_process_desc(self.width, self.height)
 
         for name, desc in self.processing.items():
             desc.count = length
