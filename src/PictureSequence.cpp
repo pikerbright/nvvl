@@ -135,6 +135,11 @@ void PictureSequence::wait() const {
 
 void PictureSequence::impl::wait() const {
     wait_until_started_();
+    unsigned long int counter = 0;
+    while (cudaEventQuery(event_) == cudaErrorNotReady) {
+        counter++;
+    }
+    std::cout << "cudaEventQuery: " << counter << std::endl;
     cucall(cudaEventSynchronize(event_));
 }
 
