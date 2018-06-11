@@ -221,7 +221,7 @@ class VideoReader(object):
 
         length = max_index - min_index + 1
 
-        if not self.width or not self.height
+        if not self.width or not self.height:
             image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
             self.height = image_shape.height
             self.width = image_shape.width
