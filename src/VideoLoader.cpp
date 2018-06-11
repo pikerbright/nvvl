@@ -229,7 +229,7 @@ Size VideoLoader::impl::size() const {
     return Size{width_, height_};
 }
 
-#define MAX_OPEN_FILE 1000
+#define MAX_OPEN_FILE 10
 VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string filename) {
     if (open_files_.size() > MAX_OPEN_FILE) {
         open_files_.clear();
