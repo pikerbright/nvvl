@@ -149,6 +149,11 @@ void PictureSequence::wait(cudaStream_t stream) const {
 
 void PictureSequence::impl::wait(cudaStream_t stream) const {
     wait_until_started_();
+    unsigned long int counter = 0;
+    while (cudaEventQuery(event_) == cudaErrorNotReady) {
+        counter++;
+    }
+    std::cerr << "cudaEventQuery: " << counter << std::endl;
     cucall(cudaStreamWaitEvent(stream, event_, 0));
 }
 
