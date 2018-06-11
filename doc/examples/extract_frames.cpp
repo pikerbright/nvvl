@@ -189,11 +189,11 @@ bool process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL
 
     loader.receive_frames_sync(s);
 
-    auto frame_num = s.get_meta<int>("frame_num")[0];
-    if (frame_num < 0) {
-        printf("stream end\n");
-        return false;
-    }
+//    auto frame_num = s.get_meta<int>("frame_num")[0];
+//    if (frame_num < 0) {
+//        printf("stream end\n");
+//        return false;
+//    }
     write_frame<T>(s);
 
     return true;
