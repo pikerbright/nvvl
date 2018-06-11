@@ -3,6 +3,6 @@
 
 extern THCState *state;
 
-void nvvl_sequence_stream_wait_th(PictureSequenceHandle sequence) {
-    nvvl_sequence_stream_wait(sequence, THCState_getCurrentStream(state));
+int nvvl_sequence_stream_wait_th(PictureSequenceHandle sequence) {
+    return nvvl_sequence_stream_wait(sequence, THCState_getCurrentStream(state));
 }

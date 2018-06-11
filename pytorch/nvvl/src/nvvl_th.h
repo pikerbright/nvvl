@@ -1,1 +1,1 @@
-void nvvl_sequence_stream_wait_th(PictureSequenceHandle sequence);
+int nvvl_sequence_stream_wait_th(PictureSequenceHandle sequence);
