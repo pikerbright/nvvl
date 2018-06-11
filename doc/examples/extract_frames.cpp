@@ -188,37 +188,79 @@ bool process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL
     s.set_layer("data", pixels);
 
     loader.receive_frames_sync(s);
+
+    auto frame_num = s.get_meta<int>("frame_num")[0];
+    if (frame_num < 0) {
+        printf("stream end\n");
+        return false;
+    }
     write_frame<T>(s);
 
     return true;
 }
 
-int main(int argc, char** argv) {
-    if (argc < 2) {
-        std::cout << "usage: " << argv[0] << " <video file>\n";
-        return -1;
-    }
+void read_stream(char* filename, int batch_num)
+{
+    auto loader = NVVL::VideoLoader{device_id, LogLevel_Debug};
 
-    auto loader = NVVL::VideoLoader{device_id};
-
-    auto filename = argv[1];
-    auto frame_count = loader.frame_count(filename);
-    std::cout << "Looks like there are " << frame_count << " frames" << std::endl;
+    loader.read_stream(filename);
 
     auto size = nvvl_video_size_from_file(filename);
+    std::cout << "stream resolution " << size.width << " " << size.height << std::endl;
 
-    // just enqueue all the frames, probably won't use them all
-    loader.read_sequence(filename, 0, frame_count);
+    for (int i = 0; i < batch_num; i++) {
+        //             type               color space     scale  norm   flip
+        auto ret = process_frames<uint8_t>(loader, size.width, size.height, ColorSpace_RGB, false, false, false); // 0-3
+        if (!ret)
+            break;
+    }
 
-    //             type               color space     scale  norm   flip
-    process_frames<uint8_t>(loader, size.width, size.height, ColorSpace_RGB,   false, false, false); // 0-3
-
-
+    loader.finish();
     auto stats = loader.get_stats();
     std::cout << "Total video packets read: " << stats.packets_read
               << " (" << stats.bytes_read << " bytes)\n"
               << "Total frames used: " << stats.frames_used
               << std::endl;
+}
 
+void read_sequence(char* filename, int frame, int batch_num)
+{
+    auto loader = NVVL::VideoLoader{device_id, LogLevel_Debug};
+
+    auto frame_count = batch_num * sequence_count;
+
+    loader.read_sequence(filename, frame, frame_count);
+
+    auto size = nvvl_video_size_from_file(filename);
+    std::cout << "file resolution " << size.width << " " << size.height << std::endl;
+
+    for (int i = 0; i < batch_num; i++) {
+        //             type               color space     scale  norm   flip
+        process_frames<uint8_t>(loader, size.width, size.height, ColorSpace_RGB, false, false, false); // 0-3
+    }
+
+    loader.finish();
+    auto stats = loader.get_stats();
+    std::cout << "Total video packets read: " << stats.packets_read
+              << " (" << stats.bytes_read << " bytes)\n"
+              << "Total frames used: " << stats.frames_used
+              << std::endl;
+}
+
+int main(int argc, char** argv) {
+    if (argc < 4) {
+        std::cout << "usage: " << argv[0] << " <video file> " << " <frame num> " << " <is_stream(0 or 1)>\n";
+        return -1;
+    }
+
+    auto filename = argv[1];
+    auto batch_num = atoi(argv[2]);
+
+    auto is_stream = atoi(argv[3]);
+    if (is_stream)
+        read_stream(filename, batch_num);
+    else
+        read_sequence(filename, 0, batch_num);
+    
     return 0;
 }
