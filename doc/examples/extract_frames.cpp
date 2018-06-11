@@ -34,13 +34,12 @@ T* new_data(size_t* pitch, size_t width, size_t height) {
 // just use one buffer for each different type
 template<typename T>
 auto get_data(size_t* ret_pitch, size_t width, size_t height) {
-    size_t pitch = 0;
-    auto data = std::shared_ptr<T>{
+    static size_t pitch;
+    static auto data = std::unique_ptr<T, decltype(&cudaFree)>{
         new_data<T>(&pitch, width, height * sequence_count * 3),
         cudaFree};
     *ret_pitch = pitch / sizeof(T);
-    //std::cout << "get data " << width << " " << height << " " << *ret_pitch << std::endl;
-    return data;
+    return data.get();
 }
 
 #ifdef HAVE_OPENCV
@@ -68,7 +67,7 @@ cv::cuda::GpuMat get_pixels<half>(const PictureSequence& sequence, int index,
     auto pixels = sequence.get_layer<half>("data", index);
     auto channels = std::vector<cv::cuda::GpuMat>();
     for (auto i : channel_order) {
-        auto channel = cv::cuda::GpuMat((int)pixels.desc.height, (int)pixels.desc.width, CV_32FC1);
+        auto channel = cv::cuda::GpuMat(pixels.desc.height, pixels.desc.width, CV_32FC1);
 
         half2float(pixels.data + pixels.desc.stride.c*i, pixels.desc.stride.y,
                    pixels.desc.width, pixels.desc.height,
@@ -101,10 +100,9 @@ void write_frame(const PictureSequence& sequence) {
 
         char output_file[256];
         auto frame_num = frame_nums[i];
-
-        sprintf(output_file,"./output/%05d.jpg",frame_num);
+        sprintf(output_file,"./output/frames/%05d.png",frame_num);
         cv::imwrite(output_file,host_bgr);
-        std::cout << "Wrote frame " << frame_num << " " << output_file << std::endl;
+        std::cout << "Wrote frame " << frame_num << std::endl;
     }
 }
 #else // no OpenCV
@@ -171,8 +169,7 @@ bool process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL
     auto s = PictureSequence{sequence_count, device_id};
 
     auto pixels = PictureSequence::Layer<T>{};
-    auto data_ptr = get_data<T>(&pixels.desc.stride.y, width, height);
-    pixels.data = data_ptr.get();
+    pixels.data = get_data<T>(&pixels.desc.stride.y, width, height);
     pixels.desc.count = sequence_count;
     pixels.desc.channels = 3;
     pixels.desc.width = width;
@@ -204,7 +201,7 @@ bool process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL
 
 void read_stream(char* filename, int batch_num)
 {
-    auto loader = NVVL::VideoLoader{0, LogLevel_Debug};
+    auto loader = NVVL::VideoLoader{device_id, LogLevel_Debug};
 
     loader.read_stream(filename);
 
@@ -228,7 +225,7 @@ void read_stream(char* filename, int batch_num)
 
 void read_sequence(char* filename, int frame, int batch_num)
 {
-    auto loader = NVVL::VideoLoader{0, LogLevel_Debug};
+    auto loader = NVVL::VideoLoader{device_id, LogLevel_Debug};
 
     auto frame_count = batch_num * sequence_count;
 
