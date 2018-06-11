@@ -129,32 +129,40 @@ void PictureSequence::impl::wait_until_started_() const {
     started_cv_.wait(lock, [&](){return started_;});
 }
 
-void PictureSequence::wait() const {
-    pImpl->wait();
+int PictureSequence::wait() const {
+    return pImpl->wait();
 }
 
-void PictureSequence::impl::wait() const {
+int PictureSequence::impl::wait() const {
     wait_until_started_();
     unsigned long int counter = 0;
     while (cudaEventQuery(event_) == cudaErrorNotReady) {
         counter++;
     }
-    std::cerr << "cudaEventQuery: " << counter << std::endl;
+    if (counter > 1000) {
+        std::cerr << "cudaEventQuery: " << counter << std::endl;
+        return -1;
+    }
     cucall(cudaEventSynchronize(event_));
+    return 0;
 }
 
-void PictureSequence::wait(cudaStream_t stream) const {
-    pImpl->wait(stream);
+int PictureSequence::wait(cudaStream_t stream) const {
+    return pImpl->wait(stream);
 }
 
-void PictureSequence::impl::wait(cudaStream_t stream) const {
+int PictureSequence::impl::wait(cudaStream_t stream) const {
     wait_until_started_();
     unsigned long int counter = 0;
     while (cudaEventQuery(event_) == cudaErrorNotReady) {
         counter++;
     }
-    std::cerr << "cudaEventQuery: " << counter << std::endl;
+    if (counter > 1000) {
+        std::cerr << "cudaEventQuery: " << counter << std::endl;
+        return -1;
+    }
     cucall(cudaStreamWaitEvent(stream, event_, 0));
+    return 0;
 }
 
 } // namespace NVVL
@@ -328,14 +336,14 @@ NVVL_PicLayer nvvl_get_layer_indexed(PictureSequenceHandle sequence, NVVL_PicDat
     return ret;
 }
 
-void nvvl_sequence_wait(PictureSequenceHandle sequence) {
+int nvvl_sequence_wait(PictureSequenceHandle sequence) {
     auto ps = reinterpret_cast<PictureSequence*>(sequence);
-    ps->wait();
+    return ps->wait();
 }
 
-void nvvl_sequence_stream_wait(PictureSequenceHandle sequence, cudaStream_t stream) {
+int nvvl_sequence_stream_wait(PictureSequenceHandle sequence, cudaStream_t stream) {
     auto ps = reinterpret_cast<PictureSequence*>(sequence);
-    ps->wait(stream);
+    return ps->wait(stream);
 }
 
 void nvvl_free_sequence(PictureSequenceHandle sequence) {

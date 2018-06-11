@@ -183,8 +183,8 @@ class PictureSequence::impl {
 
     void set_count(int count);
 
-    void wait() const;
-    void wait(cudaStream_t stream) const;
+    int wait() const;
+    int wait(cudaStream_t stream) const;
 
   private:
     template<class T> using add_layer = Layer<T>;

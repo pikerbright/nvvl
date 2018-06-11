@@ -135,9 +135,11 @@ class VideoReader(object):
         seq = self.seq_queue.popleft()
 
         if synchronous:
-            lib.nvvl_sequence_wait(seq)
+            ret = lib.nvvl_sequence_wait(seq)
         else:
-            lib.nvvl_sequence_stream_wait_th(seq)
+            ret = lib.nvvl_sequence_stream_wait_th(seq)
+
+        print("ret:{}".format(ret))
         lib.nvvl_free_sequence(seq)
 
     """Start to read video stream

@@ -315,12 +315,12 @@ struct NVVL_PicLayer nvvl_get_layer_indexed(PictureSequenceHandle sequence,
 /**
  * Wrapper for PictureSequence::wait()
  */
-void nvvl_sequence_wait(PictureSequenceHandle sequence);
+int nvvl_sequence_wait(PictureSequenceHandle sequence);
 
 /**
  * Wrapper for PictureSequence::wait(cudaStream_t)
  */
-void nvvl_sequence_stream_wait(PictureSequenceHandle sequence, cudaStream_t stream);
+int nvvl_sequence_stream_wait(PictureSequenceHandle sequence, cudaStream_t stream);
 
 /**
  * Free a PictureSequence
@@ -523,7 +523,7 @@ class PictureSequence {
     /**
      * Synchronously wait for the sequence to be ready to use
      */
-    void wait() const;
+    int wait() const;
 
     /**
      * Synchronously wait until ready, then insert a wait event into
@@ -539,7 +539,7 @@ class PictureSequence {
      *
      * \param stream The CUDA stream to insert the wait event into.
      */
-    void wait(cudaStream_t stream) const;
+    int wait(cudaStream_t stream) const;
 
     // need these for pImpl pointer to be happy
     ~PictureSequence();
