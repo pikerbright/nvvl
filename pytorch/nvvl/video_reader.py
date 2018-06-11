@@ -263,11 +263,11 @@ class VideoReader(object):
             self._start_receive(filename, index, 1)
 
         tensors = []
-        ret = true
+        ret = True
         for index in indexs:
             r = self._finish_reveive()
             if not r:
-                ret = false
+                ret = False
             t = self.tensor_queue.popleft()
             tensors.append(t["default"][0].cpu())
 
