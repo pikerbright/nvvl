@@ -88,7 +88,7 @@ class VideoReader(object):
                                str.encode(filename),
                                int(index), length)
 
-        seq = lib.nvvl_create_sequence(length)
+        seq = lib.nvvl_create_sequence_device(length, self.device_id)
 
         # for name, desc in self.processing.items():
         #     desc.count = length
@@ -167,7 +167,7 @@ class VideoReader(object):
         A list of pytorch tensors contain frames data
     """
     def stream_receive(self, count):
-        seq = lib.nvvl_create_sequence(count)
+        seq = lib.nvvl_create_sequence_device(count, self.device_id)
 
         self._set_process_desc(self.width, self.height, index_map=list(range(count)))
 
@@ -305,7 +305,7 @@ class VideoReader(object):
 
         log.info("Start to read sequence from index {}, length {}".format(index, length))
 
-        seq = lib.nvvl_create_sequence(length)
+        seq = lib.nvvl_create_sequence_device(length, self.device_id)
 
         if not self.width or not self.height:
             image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
