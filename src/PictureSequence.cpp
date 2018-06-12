@@ -139,7 +139,7 @@ int PictureSequence::wait() const {
 int PictureSequence::impl::wait() const {
     if (wait_until_started_() < 0) {
         std::cerr << "wait timeout: " << std::endl << std::flush;
-        throw std::runtime_error("wait timeout");
+        //throw std::runtime_error("wait timeout");
         return -1;
     }
 
@@ -149,7 +149,7 @@ int PictureSequence::impl::wait() const {
     }
     if (counter > 10000) {
         std::cerr << "cudaEventQuery: " << counter << std::endl << std::flush;
-        throw std::runtime_error("cudaEventQuery");
+        //throw std::runtime_error("cudaEventQuery");
         return -1;
     }
     cucall(cudaEventSynchronize(event_));
@@ -163,7 +163,7 @@ int PictureSequence::wait(cudaStream_t stream) const {
 int PictureSequence::impl::wait(cudaStream_t stream) const {
     if (wait_until_started_() < 0) {
         std::cerr << "wait timeout: " << std::endl << std::flush;
-        throw std::runtime_error("wait timeout");
+        //throw std::runtime_error("wait timeout");
         return -1;
     }
 
@@ -173,7 +173,7 @@ int PictureSequence::impl::wait(cudaStream_t stream) const {
     }
     if (counter > 10000) {
         std::cerr << "cudaEventQuery: " << counter << std::endl << std::flush;
-        throw std::runtime_error("cudaEventQuery");
+        //throw std::runtime_error("cudaEventQuery");
         return -1;
     }
     cucall(cudaStreamWaitEvent(stream, event_, 0));
