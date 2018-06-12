@@ -359,7 +359,7 @@ int nvvl_sequence_wait(PictureSequenceHandle sequence) {
     int ret = ps->wait();
     if (ret < 0)
         std::cerr << "ret2: " << ret << std::endl << std::flush;
-    return ret;
+    return -1;
 }
 
 int nvvl_sequence_stream_wait(PictureSequenceHandle sequence, cudaStream_t stream) {
