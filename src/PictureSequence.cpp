@@ -140,6 +140,7 @@ int PictureSequence::wait() const {
 }
 
 int PictureSequence::impl::wait() const {
+    return -1;
     if (wait_until_started_() < 0) {
         std::cerr << "wait timeout: " << std::endl << std::flush;
         //throw std::runtime_error("wait timeout");
@@ -359,7 +360,7 @@ int nvvl_sequence_wait(PictureSequenceHandle sequence) {
     int ret = ps->wait();
     if (ret < 0)
         std::cerr << "ret2: " << ret << std::endl << std::flush;
-    return -1;
+    return ret;
 }
 
 int nvvl_sequence_stream_wait(PictureSequenceHandle sequence, cudaStream_t stream) {
