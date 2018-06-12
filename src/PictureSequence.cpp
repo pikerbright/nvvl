@@ -139,7 +139,7 @@ int PictureSequence::impl::wait() const {
     while (cudaEventQuery(event_) == cudaErrorNotReady) {
         counter++;
     }
-    if (counter > 1000) {
+    if (counter > 10000) {
         std::cerr << "cudaEventQuery: " << counter << std::endl << std::flush;
         throw std::runtime_error("cudaEventQuery");
         return -1;
@@ -158,7 +158,7 @@ int PictureSequence::impl::wait(cudaStream_t stream) const {
     while (cudaEventQuery(event_) == cudaErrorNotReady) {
         counter++;
     }
-    if (counter > 1000) {
+    if (counter > 10000) {
         std::cerr << "cudaEventQuery: " << counter << std::endl << std::flush;
         throw std::runtime_error("cudaEventQuery");
         return -1;
