@@ -133,7 +133,9 @@ int PictureSequence::impl::wait_until_started_() const {
 }
 
 int PictureSequence::wait() const {
-    return pImpl->wait();
+    int ret = pImpl->wait();
+    if (ret < 0)
+        std::cerr << "ret: " << ret << std::endl << std::flush;
 }
 
 int PictureSequence::impl::wait() const {
