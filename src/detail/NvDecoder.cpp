@@ -485,11 +485,13 @@ void NvDecoder::convert_frames() {
                          << frame_queue_.size() << " reqs left"
                          << std::endl;
             auto frame_packet = frame_queue_.pop();
+            log_.debug() << "popping frame done" << std::endl;
             auto frame = MappedFrame{frame_packet.first, decoder_, stream_};
             if (done_) break;
             convert_frame(frame, sequence, i, frame_packet.second);
         }
         if (done_) break;
+        log_.debug() << "record_sequence_event_" << std::endl;
         record_sequence_event_(sequence);
     }
     log_.info() << "Leaving convert frames" << std::endl;
