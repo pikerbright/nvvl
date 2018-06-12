@@ -460,6 +460,7 @@ void VideoLoader::impl::read_file() {
 
         auto nonkey_frame_count = 0;
         int max_send_frame = 0;
+        vid_decoder_->set_max_send_frame(INT_MAX);
         while (!done_ && req.count > 0 && av_read_frame(file.fmt_ctx_.get(), &raw_pkt) >= 0) {
             auto pkt = pkt_ptr(&raw_pkt, av_packet_unref);
 

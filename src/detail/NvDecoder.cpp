@@ -375,7 +375,7 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
 
     req_out_of_range_ = false;
     if (current_recv_.frame > max_send_frame_ || (current_recv_.stream && max_send_frame_ < INT_MAX)) {
-        req_out_of_range_ = true;
+        //req_out_of_range_ = true;
         current_recv_.count = 0;
         log_.info() << "req frame " << current_recv_.frame
                     << " is larger than max_send_frame " << max_send_frame_ << std::endl;
@@ -393,7 +393,7 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
     frame_queue_.push(std::make_pair(disp_info, req_out_of_range_));
 
     if (current_recv_.frame > max_send_frame_ || (current_recv_.stream && max_send_frame_ < INT_MAX)) {
-        req_out_of_range_ = true;
+        //req_out_of_range_ = true;
         current_recv_.count = 0;
         log_.info() << "next req frame " << current_recv_.frame
                     << " is larger than max_send_frame " << max_send_frame_ << std::endl;
