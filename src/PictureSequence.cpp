@@ -3,8 +3,6 @@
 
 namespace NVVL {
 
-typedef std::chrono::duration<int> seconds_type;
-
 PictureSequence::PictureSequence(uint16_t count)
     : PictureSequence(count, -1)
 {}
@@ -127,7 +125,7 @@ void PictureSequence::impl::set_started_(bool started) {
 }
 
 int PictureSequence::impl::wait_until_started_() const {
-    seconds_type wait_timeout(2);
+    std::chrono::seconds wait_timeout(2);
     std::unique_lock<std::mutex> lock{started_lock_};
     if (started_cv_.wait_for(lock, wait_timeout, [&](){return started_;}) == false)
         return -1;
