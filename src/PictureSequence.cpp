@@ -136,6 +136,7 @@ int PictureSequence::wait() const {
     int ret = pImpl->wait();
     if (ret < 0)
         std::cerr << "ret: " << ret << std::endl << std::flush;
+    return ret;
 }
 
 int PictureSequence::impl::wait() const {
