@@ -107,14 +107,14 @@ void Decoder::use_default_stream() {
 
 // This has to be here since Decoder is the only friend of PictureSequence
 void Decoder::record_sequence_event_(PictureSequence& sequence) {
-    sequence.pImpl->event_.record(stream_);
     sequence.pImpl->set_started_(true);
+    sequence.pImpl->event_.record(stream_);
 }
 
 void Decoder::record_sequence_end_event_(PictureSequence& sequence) {
     sequence.get_or_add_meta<int>("frame_num")[0] = -1;
-    sequence.pImpl->event_.record(stream_);
     sequence.pImpl->set_started_(true);
+    sequence.pImpl->event_.record(stream_);
 }
 
 void Decoder::set_max_send_frame(int max_num)
