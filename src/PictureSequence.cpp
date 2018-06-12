@@ -161,7 +161,12 @@ int PictureSequence::wait(cudaStream_t stream) const {
 }
 
 int PictureSequence::impl::wait(cudaStream_t stream) const {
-    wait_until_started_();
+    if (wait_until_started_() < 0) {
+        std::cerr << "wait timeout: " << std::endl << std::flush;
+        throw std::runtime_error("wait timeout");
+        return -1;
+    }
+
     unsigned long int counter = 0;
     while (cudaEventQuery(event_) == cudaErrorNotReady) {
         counter++;
