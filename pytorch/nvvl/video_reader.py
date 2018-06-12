@@ -141,6 +141,9 @@ class VideoReader(object):
 
         lib.nvvl_free_sequence(seq)
 
+        if ret < 0:
+            print("_finish_reveive < 0")
+
         return True if ret == 0 else False
 
     """Start to read video stream
