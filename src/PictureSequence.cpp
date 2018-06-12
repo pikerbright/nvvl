@@ -356,7 +356,10 @@ NVVL_PicLayer nvvl_get_layer_indexed(PictureSequenceHandle sequence, NVVL_PicDat
 
 int nvvl_sequence_wait(PictureSequenceHandle sequence) {
     auto ps = reinterpret_cast<PictureSequence*>(sequence);
-    return ps->wait();
+    int ret = ps->wait();
+    if (ret < 0)
+        std::cerr << "ret2: " << ret << std::endl << std::flush;
+    return ret;
 }
 
 int nvvl_sequence_stream_wait(PictureSequenceHandle sequence, cudaStream_t stream) {
