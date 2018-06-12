@@ -3,6 +3,8 @@
 
 namespace NVVL {
 
+typedef std::chrono::duration<int> seconds_type;
+
 PictureSequence::PictureSequence(uint16_t count)
     : PictureSequence(count, -1)
 {}
@@ -124,9 +126,12 @@ void PictureSequence::impl::set_started_(bool started) {
     started_cv_.notify_one();
 }
 
-void PictureSequence::impl::wait_until_started_() const {
+int PictureSequence::impl::wait_until_started_() const {
+    seconds_type wait_timeout(2);
     std::unique_lock<std::mutex> lock{started_lock_};
-    started_cv_.wait(lock, [&](){return started_;});
+    if (started_cv_.wait_for(lock, wait_timeout, [&](){return started_;}) == false)
+        return -1;
+    return 0;
 }
 
 int PictureSequence::wait() const {
@@ -134,7 +139,12 @@ int PictureSequence::wait() const {
 }
 
 int PictureSequence::impl::wait() const {
-    wait_until_started_();
+    if (wait_until_started_() < 0) {
+        std::cerr << "wait timeout: " << std::endl << std::flush;
+        throw std::runtime_error("wait timeout");
+        return -1;
+    }
+
     unsigned long int counter = 0;
     while (cudaEventQuery(event_) == cudaErrorNotReady) {
         counter++;

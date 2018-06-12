@@ -204,7 +204,7 @@ class PictureSequence::impl {
     CudaEvent event_;
     uint16_t count_;
 
-    void wait_until_started_() const;
+    int wait_until_started_() const;
 
     // Decoder's needs to record the event and indicate transfer has started
     friend class detail::Decoder;
