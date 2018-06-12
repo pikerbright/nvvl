@@ -271,6 +271,7 @@ class VideoReader(object):
             r = self._finish_reveive()
             if not r:
                 ret = False
+                print(indexs)
             t = self.tensor_queue.popleft()
             tensors.append(t["default"][0].cpu())
 
