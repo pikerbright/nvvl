@@ -274,7 +274,6 @@ class VideoReader(object):
             t = self.tensor_queue.popleft()
             tensors.append(t["default"][0].cpu())
 
-        print("@@ret {}".format(r))
         return tensors if ret else None
 
     def get_samples_old_sync(self, filename, indexs):

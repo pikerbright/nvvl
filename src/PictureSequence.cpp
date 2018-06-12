@@ -140,7 +140,6 @@ int PictureSequence::wait() const {
 }
 
 int PictureSequence::impl::wait() const {
-    return -1;
     if (wait_until_started_() < 0) {
         std::cerr << "wait timeout: " << std::endl << std::flush;
         //throw std::runtime_error("wait timeout");
