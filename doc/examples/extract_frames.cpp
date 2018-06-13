@@ -40,7 +40,7 @@ auto get_data(size_t* ret_pitch, size_t width, size_t height) {
         cudaFree};
     *ret_pitch = pitch / sizeof(T);
     //std::cout << "get data " << width << " " << height << " " << *ret_pitch << std::endl;
-    return data;
+    return data.get();
 }
 
 #ifdef HAVE_OPENCV
@@ -171,8 +171,7 @@ bool process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL
     auto s = PictureSequence{sequence_count, device_id};
 
     auto pixels = PictureSequence::Layer<T>{};
-    auto data_ptr = get_data<T>(&pixels.desc.stride.y, width, height);
-    pixels.data = data_ptr.get();
+    pixels.data = get_data<T>(&pixels.desc.stride.y, width, height);
     pixels.desc.count = sequence_count;
     pixels.desc.channels = 3;
     pixels.desc.width = width;
