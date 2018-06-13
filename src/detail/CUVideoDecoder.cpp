@@ -123,6 +123,7 @@ int CUVideoDecoder::initialize(CUVIDEOFORMAT* format) {
                      << "\tBit depth       : " << format->bit_depth_luma_minus8 + 8 << std::endl;
     }
 
+    /*
     auto caps = CUVIDDECODECAPS{};
     caps.eCodecType = format->codec;
     caps.eChromaFormat = format->chroma_format;
@@ -155,6 +156,7 @@ int CUVideoDecoder::initialize(CUVIDEOFORMAT* format) {
             throw std::runtime_error("Video is too large (too many macroblocks).");
         }
     }
+    */
 
     decoder_info_.CodecType = format->codec;
     decoder_info_.ulWidth = format->coded_width;
