@@ -203,6 +203,8 @@ bool process_frames(NVVL::VideoLoader& loader, size_t width, size_t height, NVVL
 
 void read_stream(char* filename, int batch_num)
 {
+    cudaSetDevice(device_id);
+
     auto loader = NVVL::VideoLoader{device_id, LogLevel_Debug};
 
     loader.read_stream(filename);
@@ -227,6 +229,8 @@ void read_stream(char* filename, int batch_num)
 
 void read_sequence(char* filename, int frame, int batch_num)
 {
+    cudaSetDevice(device_id);
+
     auto loader = NVVL::VideoLoader{device_id, LogLevel_Debug};
 
     auto frame_count = batch_num * sequence_count;
