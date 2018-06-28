@@ -34,8 +34,8 @@ T* new_data(size_t* pitch, size_t width, size_t height) {
 // just use one buffer for each different type
 template<typename T>
 auto get_data(size_t* ret_pitch, size_t width, size_t height) {
-    size_t pitch = 0;
-    auto data = std::shared_ptr<T>{
+    static size_t pitch;
+    static auto data = std::unique_ptr<T, decltype(&cudaFree)>{
         new_data<T>(&pitch, width, height * sequence_count * 3),
         cudaFree};
     *ret_pitch = pitch / sizeof(T);
