@@ -16,12 +16,11 @@ log_levels = {
     }
 
 class PreProcess(object):
-    def __init__(self, crop_width=0, crop_height=0, scale_width=0, scale_height=0,
+    def __init__(self, crop_width=0, crop_height=0, scale_size=0,
                  random_crop=False, random_flip=False, normalized=False):
         self.crop_height = crop_height
         self.crop_width = crop_width
-        self.scale_width = scale_width
-        self.scale_height = scale_height
+        self.scale_size = scale_size
         self.random_crop = random_crop
         self.random_flip = random_flip
         self.normalized = normalized
@@ -44,8 +43,10 @@ class VideoReader(object):
         self.device_id = device_id
         self.width = None
         self.height = None
-        if self.preprocess is None:
+        if preprocess is None:
             self.preprocess = PreProcess()
+        else:
+            self.preprocess = preprocess
 
         try:
             log_level = log_levels[log_level]
@@ -67,13 +68,20 @@ class VideoReader(object):
         return tensor_map
 
     def _set_process_desc(self, index_map=None):
-        width = self.preprocess.crop_width if self.preprocess.crop_width < self.width else self.width
-        height = self.preprocess.crop_height if self.preprocess.crop_height < self.height else self.height
+        width = self.preprocess.crop_width if self.preprocess.crop_width else self.width
+        height = self.preprocess.crop_height if self.preprocess.crop_height else self.height
+        if self.width < self.height:
+            scale_width = self.preprocess.scale_size
+            scale_height = int(self.preprocess.scale_size * self.height / self.width)
+        else:
+            scale_height = self.preprocess.scale_size
+            scale_width = int(self.preprocess.scale_size * self.width / self.height)
+
         self.processing = {"default": ProcessDesc(type='float',
                                                   height=height,
                                                   width=width,
-                                                  scale_width=self.preprocess.scale_width,
-                                                  scale_height=self.preprocess.scale_height,
+                                                  scale_width=scale_width,
+                                                  scale_height=scale_height,
                                                   random_crop=self.preprocess.random_crop,
                                                   random_flip=self.preprocess.random_flip,
                                                   normalized=self.preprocess.normalized,
@@ -88,24 +96,23 @@ class VideoReader(object):
         height = self.height
         if desc.scale_width:
             d.scale_width = desc.scale_width
-            width = self.width * desc.scale_width
+            width = desc.scale_width
 
         if desc.scale_height:
             d.scale_height = desc.scale_height
-            height = self.height * desc.scale_height
+            height = desc.scale_height
 
-        print(width, height)
         if (desc.random_crop and (width > desc.width)):
             d.crop_x = random.randint(0, width - desc.width)
         elif width > desc.width:
-            d.crop_x = width - desc.width
+            d.crop_x = int((width - desc.width + 1) / 2)
         else:
             d.crop_x = 0
 
         if (desc.random_crop and (height > desc.height)):
             d.crop_y = random.randint(0, height - desc.height)
         elif height - desc.height:
-            d.crop_y = height - desc.height
+            d.crop_y = int((height - desc.height + 1) / 2)
         else:
             d.crop_y = 0
 
@@ -140,7 +147,6 @@ class VideoReader(object):
                 layer.type = lib.PDT_BYTE
 
             # log.info("tensor {}".format(tensor))
-
             strides = tensor[0].stride()
             try:
                 desc.stride.x = strides[desc.dimension_order.index('w')]
