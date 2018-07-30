@@ -36,7 +36,7 @@ class VideoReader(object):
             video file name
 
     """
-    def __init__(self, device_id=0, log_level="warn", processing=None):
+    def __init__(self, device_id=0, log_level="warn", preprocess=None):
         self.ffi = lib._ffi
         self.tensor_queue = collections.deque()
         self.seq_queue = collections.deque()
@@ -44,8 +44,8 @@ class VideoReader(object):
         self.device_id = device_id
         self.width = None
         self.height = None
-        if self.processing is None:
-            self.processing = PreProcess()
+        if self.preprocess is None:
+            self.preprocess = PreProcess()
 
         try:
             log_level = log_levels[log_level]
@@ -67,16 +67,16 @@ class VideoReader(object):
         return tensor_map
 
     def _set_process_desc(self, index_map=None):
-        width = self.processing.crop_width if self.processing.crop_width < self.width else self.width
-        height = self.processing.crop_height if self.processing.crop_height < self.height else self.height
+        width = self.preprocess.crop_width if self.preprocess.crop_width < self.width else self.width
+        height = self.preprocess.crop_height if self.preprocess.crop_height < self.height else self.height
         self.processing = {"default": ProcessDesc(type='float',
                                                   height=height,
                                                   width=width,
-                                                  scale_width=self.processing.scale_width,
-                                                  scale_height=self.processing.scale_height,
-                                                  random_crop=self.processing.random_crop,
-                                                  random_flip=self.processing.random_flip,
-                                                  normalized=self.processing.normalized,
+                                                  scale_width=self.preprocess.scale_width,
+                                                  scale_height=self.preprocess.scale_height,
+                                                  random_crop=self.preprocess.random_crop,
+                                                  random_flip=self.preprocess.random_flip,
+                                                  normalized=self.preprocess.normalized,
                                                   color_space="RGB",
                                                   dimension_order="fhwc",
                                                   index_map=index_map)}
