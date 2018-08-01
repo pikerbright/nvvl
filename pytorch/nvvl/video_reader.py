@@ -70,12 +70,15 @@ class VideoReader(object):
     def _set_process_desc(self, index_map=None):
         width = self.preprocess.crop_width if self.preprocess.crop_width else self.width
         height = self.preprocess.crop_height if self.preprocess.crop_height else self.height
-        if self.width < self.height:
-            scale_width = self.preprocess.scale_size
-            scale_height = int(self.preprocess.scale_size * self.height / self.width)
+        if isinstance(self.preprocess.scale_size, int):
+            if self.width < self.height:
+                scale_width = self.preprocess.scale_size
+                scale_height = int(self.preprocess.scale_size * self.height / self.width)
+            else:
+                scale_height = self.preprocess.scale_size
+                scale_width = int(self.preprocess.scale_size * self.width / self.height)
         else:
-            scale_height = self.preprocess.scale_size
-            scale_width = int(self.preprocess.scale_size * self.width / self.height)
+            scale_width, scale_height = self.preprocess.scale_size
 
         self.processing = {"default": ProcessDesc(type='float',
                                                   height=height,
