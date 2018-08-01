@@ -15,6 +15,17 @@ log_levels = {
     "none"  : lib.LogLevel_None
     }
 
+class PreProcess(object):
+    def __init__(self, crop_width=0, crop_height=0, scale_size=0,
+                 random_crop=False, random_flip=False, normalized=False):
+        self.crop_height = crop_height
+        self.crop_width = crop_width
+        self.scale_size = scale_size
+        self.random_crop = random_crop
+        self.random_flip = random_flip
+        self.normalized = normalized
+         
+
 class VideoReader(object):
     """VideoReader, random read some frames from any position.
 
@@ -24,7 +35,7 @@ class VideoReader(object):
             video file name
 
     """
-    def __init__(self, device_id=0, log_level="warn"):
+    def __init__(self, device_id=0, preprocess=None, log_level="warn"):
         self.ffi = lib._ffi
         self.tensor_queue = collections.deque()
         self.seq_queue = collections.deque()
@@ -32,6 +43,11 @@ class VideoReader(object):
         self.device_id = device_id
         self.width = None
         self.height = None
+        if preprocess is None:
+            self.preprocess = PreProcess()
+        else:
+            self.preprocess = preprocess
+
         try:
             log_level = log_levels[log_level]
         except KeyError:
@@ -51,13 +67,27 @@ class VideoReader(object):
                 tensor_map[name] = desc.tensor_type(batch_size, *desc.get_dims())
         return tensor_map
 
-    def _set_process_desc(self, width, height, index_map=None):
+    def _set_process_desc(self, index_map=None):
+        width = self.preprocess.crop_width if self.preprocess.crop_width else self.width
+        height = self.preprocess.crop_height if self.preprocess.crop_height else self.height
+        if isinstance(self.preprocess.scale_size, int):
+            if self.width < self.height:
+                scale_width = self.preprocess.scale_size
+                scale_height = int(self.preprocess.scale_size * self.height / self.width)
+            else:
+                scale_height = self.preprocess.scale_size
+                scale_width = int(self.preprocess.scale_size * self.width / self.height)
+        else:
+            scale_width, scale_height = self.preprocess.scale_size
+
         self.processing = {"default": ProcessDesc(type='float',
                                                   height=height,
                                                   width=width,
-                                                  random_crop=False,
-                                                  random_flip=False,
-                                                  normalized=False,
+                                                  scale_width=scale_width,
+                                                  scale_height=scale_height,
+                                                  random_crop=self.preprocess.random_crop,
+                                                  random_flip=self.preprocess.random_flip,
+                                                  normalized=self.preprocess.normalized,
                                                   color_space="RGB",
                                                   dimension_order="fhwc",
                                                   index_map=index_map)}
@@ -65,13 +95,27 @@ class VideoReader(object):
     def _get_layer_desc(self, desc):
         d = desc.desc()
 
-        if (desc.random_crop and (self.width > desc.width)):
-            d.crop_x = random.randint(0, self.width - desc.width)
+        width = self.width
+        height = self.height
+        if desc.scale_width:
+            d.scale_width = desc.scale_width
+            width = desc.scale_width
+
+        if desc.scale_height:
+            d.scale_height = desc.scale_height
+            height = desc.scale_height
+
+        if (desc.random_crop and (width > desc.width)):
+            d.crop_x = random.randint(0, width - desc.width)
+        elif width > desc.width:
+            d.crop_x = int((width - desc.width + 1) / 2)
         else:
             d.crop_x = 0
 
-        if (desc.random_crop and (self.height > desc.height)):
-            d.crop_y = random.randint(0, self.height - desc.height)
+        if (desc.random_crop and (height > desc.height)):
+            d.crop_y = random.randint(0, height - desc.height)
+        elif height - desc.height:
+            d.crop_y = int((height - desc.height + 1) / 2)
         else:
             d.crop_y = 0
 
@@ -106,7 +150,6 @@ class VideoReader(object):
                 layer.type = lib.PDT_BYTE
 
             # log.info("tensor {}".format(tensor))
-
             strides = tensor[0].stride()
             try:
                 desc.stride.x = strides[desc.dimension_order.index('w')]
@@ -169,7 +212,7 @@ class VideoReader(object):
     def stream_receive(self, count):
         seq = lib.nvvl_create_sequence_device(count, self.device_id)
 
-        self._set_process_desc(self.width, self.height, index_map=list(range(count)))
+        self._set_process_desc(index_map=list(range(count)))
 
         tensor_map = self._create_tensor_map()
 
@@ -216,42 +259,12 @@ class VideoReader(object):
         return frame_num, tensors
 
     def get_samples(self, filename, indexs):
-        max_index = max(indexs)
-        min_index = min(indexs)
-
-        length = max_index - min_index + 1
-
         if not self.width or not self.height:
             image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
             self.height = image_shape.height
             self.width = image_shape.width
 
-        index_map = [-1] * length
-
-        for i, index in enumerate(indexs):
-            index_map[index - min_index] = i
-
-        self._set_process_desc(self.width, self.height, index_map=index_map)
-
-        # if isinstance(indexs, int):
-        #     indexs = [indexs]
-
-        self._start_receive(filename, min_index, length)
-
-        self._finish_reveive()
-        t = self.tensor_queue.popleft()
-        tensors = t["default"][0].cpu()
-        log.info("tensor shape {}".format(t["default"][0].shape))
-
-        return tensors
-
-    def get_samples_old(self, filename, indexs):
-        if not self.width or not self.height:
-            image_shape = lib.nvvl_video_size_from_file(str.encode(filename))
-            self.height = image_shape.height
-            self.width = image_shape.width
-
-        self._set_process_desc(self.width, self.height, index_map=[0])
+        self._set_process_desc(index_map=[0])
 
         if isinstance(indexs, int):
             indexs = [indexs]
@@ -273,7 +286,7 @@ class VideoReader(object):
             self.height = image_shape.height
             self.width = image_shape.width
 
-        self._set_process_desc(self.width, self.height, index_map=[0])
+        self._set_process_desc(index_map=[0])
 
         if isinstance(indexs, int):
             indexs = [indexs]
@@ -312,7 +325,7 @@ class VideoReader(object):
             self.height = image_shape.height
             self.width = image_shape.width
 
-        self._set_process_desc(self.width, self.height)
+        self._set_process_desc()
 
         for name, desc in self.processing.items():
             desc.count = length
