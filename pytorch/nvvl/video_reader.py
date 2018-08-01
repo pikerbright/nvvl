@@ -35,7 +35,7 @@ class VideoReader(object):
             video file name
 
     """
-    def __init__(self, device_id=0, log_level="warn", preprocess=None):
+    def __init__(self, device_id=0, preprocess=None, log_level="warn"):
         self.ffi = lib._ffi
         self.tensor_queue = collections.deque()
         self.seq_queue = collections.deque()
