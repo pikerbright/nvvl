@@ -91,8 +91,8 @@ __global__ void process_frame_kernel(
     auto src_y = static_cast<float>(dst_y + dst.desc.crop_y) * fy;
 
     yuv<float> yuv;
-    yuv.y = tex2D<float>(luma, src_x + 0.5, src_y + 0.5);
-    auto uv = tex2D<float2>(chroma, (src_x / 2) + 0.5, (src_y / 2) + 0.5);
+    yuv.y = tex2D<float>(luma, src_x, src_y);
+    auto uv = tex2D<float2>(chroma, (src_x / 2), (src_y / 2));
     yuv.u = uv.x;
     yuv.v = uv.y;
 
