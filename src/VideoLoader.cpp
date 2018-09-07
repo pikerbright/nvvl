@@ -125,6 +125,7 @@ class VideoLoader::impl {
     std::atomic<bool> done_;
     detail::Logger log_;
     std::unique_ptr<detail::Decoder> vid_decoder_;
+    AVCodecParameters* decoder_params;
     detail::Queue<detail::FrameReq> send_queue_;
 
     // this needs to be last so that it is destroyed first so that the
@@ -151,7 +152,7 @@ VideoLoader::VideoLoader(int device_id, LogLevel log_level)
 VideoLoader::impl::impl(int device_id, LogLevel log_level)
     : device_id_{device_id}, stats_{},
       width_{0}, height_{0}, codec_id_{0},
-      done_{false}, log_{log_level} {
+      done_{false}, decoder_params(nullptr), log_{log_level} {
     av_register_all();
     avformat_network_init();
     //av_log_set_level(AV_LOG_DEBUG);
@@ -304,9 +305,11 @@ VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string fil
             if (codecpar(stream)->codec_type != AVMEDIA_TYPE_VIDEO)
                 log_.error() << "codec_type error " << codecpar(stream)->codec_type << std::endl;
 
+            decoder_params = avcodec_parameters_alloc();
+            avcodec_parameters_copy(decoder_params, codecpar(stream));
             vid_decoder_ = std::unique_ptr<detail::Decoder>{
                 new detail::NvDecoder(device_id_, log_,
-                                      codecpar(stream),
+                                      decoder_params,
                                       stream->time_base)};
 //            AVRational tmp_base{stream->avg_frame_rate.den, stream->avg_frame_rate.num};
             vid_decoder_->set_time_base(stream->time_base);
@@ -615,6 +618,10 @@ void VideoLoader::impl::read_file() {
     if (vid_decoder_) {
         vid_decoder_->decode_packet(nullptr); // stop decoding
     }
+
+    if (decoder_params)
+        avcodec_parameters_free(&decoder_params);
+
     log_.info() << "Leaving read_file" << std::endl;
 }
 
