@@ -69,7 +69,7 @@ int Decoder::decode_packet(AVPacket* pkt) {
             return decode_av_packet(pkt);
 
         default:
-            log_.error() << "decode_packet error codec_type" << codec_type_ << std::endl;
+            log_.error() << "decode_packet error codec_type" << codecpar_->codec_type << std::endl;
             //throw std::runtime_error("Got to decode_packet in a decoder that is not "
             //                         "for an audio, video, or subtitle stream.");
     }

@@ -619,6 +619,7 @@ void VideoLoader::impl::read_file() {
         vid_decoder_->decode_packet(nullptr); // stop decoding
     }
 
+    log_.error() << "avcodec_parameters_free " << decoder_params->codec_type << std::endl;
     if (decoder_params)
         avcodec_parameters_free(&decoder_params);
 
