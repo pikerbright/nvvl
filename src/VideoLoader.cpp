@@ -114,6 +114,7 @@ class VideoLoader::impl {
     OpenFile& get_or_open_file(std::string filename);
 
     std::unordered_map<std::string, OpenFile> open_files_;
+    std::queue<std::string> filename_queue;
 
     int device_id_;
     VideoLoaderStats stats_;
@@ -191,12 +192,12 @@ int VideoLoader::impl::frame_count(std::string filename) {
 
 
 void VideoLoader::read_sequence(std::string filename, int frame, int count) {
-    pImpl->frame_count(filename);
+    //pImpl->frame_count(filename);
     pImpl->read_sequence(filename, frame, count);
 }
 
 void VideoLoader::read_stream(std::string filename) {
-    pImpl->frame_count(filename);
+    //pImpl->frame_count(filename);
     pImpl->read_stream(filename);
 }
 
@@ -232,14 +233,17 @@ Size VideoLoader::impl::size() const {
 
 #define MAX_OPEN_FILE 1000
 VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string filename) {
-    if (open_files_.size() > MAX_OPEN_FILE) {
-        open_files_.clear();
-    }
-
     auto& file = open_files_[filename];
 
     if (!file.open) {
         log_.debug() << "Opening file " << filename << std::endl;
+
+        if (open_files_.size() > MAX_OPEN_FILE) {
+            auto delete_name = filename_queue.front();
+            open_files_.erase(delete_name);
+            filename_queue.pop();
+        }
+        filename_queue.push(filename);
 
         AVFormatContext* raw_fmt_ctx = nullptr;
 
@@ -619,7 +623,6 @@ void VideoLoader::impl::read_file() {
         vid_decoder_->decode_packet(nullptr); // stop decoding
     }
 
-    log_.error() << "avcodec_parameters_free " << decoder_params->codec_type << std::endl;
     if (decoder_params)
         avcodec_parameters_free(&decoder_params);
 
