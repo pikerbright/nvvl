@@ -482,11 +482,14 @@ void NvDecoder::convert_frames() {
         }
 
         for (int i = 0; i < sequence.count(); ++i) {
-            log_.debug() << "popping frame (" << i << "/" << sequence.count() << ") "
-                         << frame_queue_.size() << " reqs left"
-                         << std::endl;
             auto frame_packet = frame_queue_.pop();
             auto frame = MappedFrame{frame_packet.first, decoder_, stream_};
+            auto frame_num = av_rescale_q(frame_packet.first->timestamp,
+                                      nv_time_base_, frame_base_);
+            log_.debug() << "popping frame (" << i << "/" << sequence.count() << ") "
+                         << frame_queue_.size() << " reqs left"
+                         << "frame num " << frame_num
+                         << std::endl;
             if (done_) break;
             convert_frame(frame, sequence, i, frame_packet.second);
         }
