@@ -52,6 +52,8 @@ class Queue {
     }
 
     void cancel_pops() {
+        std::lock_guard<std::mutex> lock(lock_);
+
         interrupt_ = true;
         cond_.notify_all();
     }

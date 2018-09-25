@@ -177,6 +177,7 @@ void VideoLoader::impl::finish() {
     if (vid_decoder_) {
         vid_decoder_->finish();
     }
+    avformat_network_deinit();
 }
 
 VideoLoader::VideoLoader(VideoLoader&&) = default;
@@ -634,9 +635,9 @@ void VideoLoader::receive_frames(PictureSequence& sequence) {
 }
 
 void VideoLoader::impl::receive_frames(PictureSequence& sequence) {
-    auto startup_timeout = 10000;
+    auto startup_timeout = 30000;
     while (!vid_decoder_) {
-        usleep(500);
+        usleep(1000);
         if (startup_timeout-- == 0) {
             throw std::runtime_error("Timeout waiting for a valid decoder");
         }
