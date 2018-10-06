@@ -131,7 +131,7 @@ class NvDecoder : public Decoder
     std::unordered_map<TexID, TextureObjects, tex_hash> textures_;
 
     bool done_;
-    bool req_out_of_range_;
+    std::atomic<bool> req_out_of_range_;
     int max_send_frame_;
 
     JoiningThread convert_thread_;

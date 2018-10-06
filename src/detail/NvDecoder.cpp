@@ -330,6 +330,7 @@ void NvDecoder::set_frame_base(AVRational frame_base)
 int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
     auto frame = av_rescale_q(disp_info->timestamp,
                               nv_time_base_, frame_base_);
+    bool req_out_of_range;
 
     log_.debug() << "start handle_display " << disp_info->timestamp
                  << " " << nv_time_base_.num << " " << nv_time_base_.den
@@ -373,9 +374,9 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
         return 1;
     }
 
-    req_out_of_range_ = false;
+    req_out_of_range = false;
     if (current_recv_.frame > max_send_frame_ || (current_recv_.stream && max_send_frame_ < INT_MAX)) {
-        req_out_of_range_ = true;
+        req_out_of_range = true;
         current_recv_.count = 0;
         log_.info() << "req frame " << current_recv_.frame
                     << " is larger than max_send_frame " << max_send_frame_ << std::endl;
@@ -390,15 +391,16 @@ int NvDecoder::handle_display_(CUVIDPARSERDISPINFO* disp_info) {
     current_recv_.count--;
 
     frame_in_use_[disp_info->picture_index] = true;
-    frame_queue_.push(std::make_pair(disp_info, req_out_of_range_));
+    frame_queue_.push(std::make_pair(disp_info, req_out_of_range));
     log_.debug() << "frame_queue_ push frame " << frame << "frame_queue_ size: " << frame_queue_.size() << std::endl;
 
     if (current_recv_.frame > max_send_frame_ || (current_recv_.stream && max_send_frame_ < INT_MAX)) {
-        req_out_of_range_ = true;
+        req_out_of_range = true;
         current_recv_.count = 0;
         log_.info() << "next req frame " << current_recv_.frame
                     << " is larger than max_send_frame " << max_send_frame_ << std::endl;
     }
+    req_out_of_range_ = req_out_of_range;
 
     return 1;
 }
