@@ -476,12 +476,14 @@ void NvDecoder::convert_frames() {
         auto& sequence = *output_queue_.pop();
         if (done_) break;
 
+        /*
         if (req_out_of_range_ && frame_queue_.size() == 0) {
             record_sequence_end_event_(sequence);
             log_.debug() << "record_sequence_end_event_" << std::endl;
             req_out_of_range_ = false;
             continue;
         }
+        */
 
         for (int i = 0; i < sequence.count(); ++i) {
             auto frame_packet = frame_queue_.pop();
