@@ -109,12 +109,13 @@ class VideoLoader::impl {
         AVCodecContext* codec;
 #endif
         av_unique_ptr<AVFormatContext> fmt_ctx_;
+        ~OpenFile() {std::cout << "OpenFile deconstruct" << std::endl;}
     };
 
-    OpenFile& get_or_open_file(std::string filename);
+    OpenFile& get_or_open_file(std::string filename, OpenFile& file);
 
-    std::unordered_map<std::string, OpenFile> open_files_;
-    std::queue<std::string> filename_queue;
+//    std::unordered_map<std::string, OpenFile> open_files_;
+//    std::queue<std::string> filename_queue;
 
     int device_id_;
     VideoLoaderStats stats_;
@@ -188,7 +189,8 @@ int VideoLoader::frame_count(std::string filename) {
 }
 
 int VideoLoader::impl::frame_count(std::string filename) {
-    return get_or_open_file(filename).frame_count_;
+    OpenFile file;
+    return get_or_open_file(filename, file).frame_count_;
 }
 
 
@@ -233,18 +235,17 @@ Size VideoLoader::impl::size() const {
 }
 
 #define MAX_OPEN_FILE 1000
-VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string filename) {
-    auto& file = open_files_[filename];
+VideoLoader::impl::OpenFile& VideoLoader::impl::get_or_open_file(std::string filename, VideoLoader::impl::OpenFile& file) {
 
     if (!file.open) {
         log_.debug() << "Opening file " << filename << std::endl;
 
-        if (open_files_.size() > MAX_OPEN_FILE) {
-            auto delete_name = filename_queue.front();
-            open_files_.erase(delete_name);
-            filename_queue.pop();
-        }
-        filename_queue.push(filename);
+//        if (open_files_.size() > MAX_OPEN_FILE) {
+//            auto delete_name = filename_queue.front();
+//            open_files_.erase(delete_name);
+//            filename_queue.pop();
+//        }
+//        filename_queue.push(filename);
 
         AVFormatContext* raw_fmt_ctx = nullptr;
 
@@ -448,7 +449,8 @@ void VideoLoader::impl::read_file() {
             break;
         }
 
-        auto& file = get_or_open_file(req.filename);
+        OpenFile file;
+        get_or_open_file(req.filename, file);
 
         // give the vid_decoder a copy of the req before we trash it
         if (vid_decoder_) {
