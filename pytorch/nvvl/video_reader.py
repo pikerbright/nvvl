@@ -183,6 +183,8 @@ class VideoReader(object):
             lib.nvvl_sequence_stream_wait_th(seq)
         lib.nvvl_free_sequence(seq)
 
+        lib.nvvl_debug_print(str.encode("end of _finish_reveive"))
+
     """Start to read video stream
     Parameter
     ----------

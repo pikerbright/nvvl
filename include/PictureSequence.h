@@ -327,6 +327,8 @@ void nvvl_sequence_stream_wait(PictureSequenceHandle sequence, cudaStream_t stre
  */
 void nvvl_free_sequence(PictureSequenceHandle sequence);
 
+void nvvl_debug_print(const char* str);
+
 #ifdef __cplusplus
 } // end extern "C"
 

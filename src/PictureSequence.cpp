@@ -331,6 +331,11 @@ void nvvl_sequence_stream_wait(PictureSequenceHandle sequence, cudaStream_t stre
 void nvvl_free_sequence(PictureSequenceHandle sequence) {
     auto ps = reinterpret_cast<PictureSequence*>(sequence);
     delete ps;
+    std::cout << "nvvl_free_sequence" << std::endl;
+}
+
+void nvvl_debug_print(const char* str) {
+    std::cout << str << std::endl;
 }
 
 }
